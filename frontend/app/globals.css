@@ -1,0 +1,100 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 60 100% 98%;
+    --foreground: 222.2 84% 4.9%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+
+    --primary: 162 39% 40%;
+    --primary-foreground: 210 40% 98%;
+
+    --secondary: 84 33% 75%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+
+    --muted: 84 59% 94%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+
+    --accent: 162 33% 73%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 162 39% 40%;
+
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    /* Updated dark theme colors to match the exact hex values */
+    --background: 200 59% 12%; /* #092635 */
+    --foreground: 210 40% 98%;
+
+    --card: 186 42% 18%; /* #1B4242 */
+    --card-foreground: 210 40% 98%;
+
+    --popover: 186 42% 18%; /* #1B4242 */
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 157 19% 41%; /* #5C8374 */
+    --primary-foreground: 222.2 47.4% 11.2%;
+
+    --secondary: 157 25% 70%; /* #9EC8B9 */
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 200 59% 12%; /* #092635 */
+    --muted-foreground: 215 20.2% 65.1%;
+
+    --accent: 157 25% 70%; /* #9EC8B9 */
+    --accent-foreground: 210 40% 98%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 186 42% 18%; /* #1B4242 */
+    --input: 186 42% 18%; /* #1B4242 */
+    --ring: 157 19% 41%; /* #5C8374 */
+
+    --radius: 0.5rem;
+  }
+}
+
+@layer components {
+  .perspective {
+    perspective: 1000px;
+  }
+
+  .transform-style-3d {
+    transform-style: preserve-3d;
+  }
+
+  .backface-hidden {
+    backface-visibility: hidden;
+  }
+
+  .rotate-y-180 {
+    transform: rotateY(180deg);
+  }
+
+  /* Sidebar transition */
+  .sidebar-expanded {
+    width: 240px;
+    transition: width 0.3s ease;
+  }
+
+  .sidebar-collapsed {
+    width: 64px;
+    transition: width 0.3s ease;
+  }
+}
+
