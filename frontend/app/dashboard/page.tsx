@@ -31,7 +31,7 @@ export default function DashboardPage() {
       <div className="flex flex-1">
         <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
         <main className="flex-1 p-6 md:p-10 md:ml-0 transition-all duration-300 ease-in-out">
-          <div className="mx-auto max-w-6xl">
+          <div className="mx-auto max-w-5xl">
             <div className="mb-8 flex items-center justify-between">
               <h1 className="text-3xl font-bold">Dashboard</h1>
               <Button onClick={() => router.push("/create")}>
