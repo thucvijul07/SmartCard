@@ -66,10 +66,8 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
 
   return (
     <>
-      {/* Mobile sidebar backdrop */}
       {isOpen && <div className="fixed inset-0 z-40 bg-background/80 backdrop-blur-sm md:hidden" onClick={onClose} />}
 
-      {/* Sidebar */}
       <div
         className={cn(
           "fixed top-0 left-0 z-50 h-full border-r bg-background transition-all duration-300 ease-in-out md:translate-x-0 md:z-0",
@@ -87,9 +85,9 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
           </Button>
         </div>
 
-        <div className="space-y-4 py-4">
-          <div className="px-3 py-2">
-            <div className="space-y-1">
+        <div className="space-y-4 py-4 mt-6">
+          <div className="px-3 py-2 mt-10">
+            <div className="space-y-1 mt-4">
               {routes.map((route) => (
                 <Link
                   key={route.href}
@@ -110,7 +108,6 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
           </div>
         </div>
 
-        {/* Collapse toggle button - visible only on desktop */}
         <div className="absolute bottom-4 right-2 hidden md:block">
           <Button variant="ghost" size="icon" onClick={toggleCollapse} className="h-8 w-8">
             {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
