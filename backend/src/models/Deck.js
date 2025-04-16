@@ -1,22 +1,30 @@
 import mongoose from "mongoose";
 
-const deckSchema = new mongoose.Schema({
-  user_id: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: true
+const deckSchema = new mongoose.Schema(
+  {
+    user_id: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
+    name: {
+      type: String,
+      required: true,
+    },
+    description: {
+      type: String,
+    },
+    deleted_at: {
+      type: Date,
+      default: null,
+    },
   },
-  name: {
-    type: String,
-    required: true
-  },
-  description: {
-    type: String
-  },
-  created_at: {
-    type: Date,
-    default: Date.now
+  {
+    timestamps: {
+      createdAt: "created_at",
+      updatedAt: "updated_at",
+    },
   }
-});
+);
 
-export default mongoose.model("Deck", deckSchema); 
+export default mongoose.model("Deck", deckSchema);
