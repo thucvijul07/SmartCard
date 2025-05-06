@@ -1,38 +1,74 @@
-"use client"
+"use client";
 
-import type React from "react"
+import type React from "react";
 
-import { useState } from "react"
-import Link from "next/link"
-import { useRouter } from "next/navigation"
-import { useAuth } from "@/components/auth-provider"
-import { Header } from "@/components/header"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { toast, ToastContainer } from "react-toastify";
+import { useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/components/auth-provider";
+import { Header } from "@/components/header";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 
 export default function RegisterPage() {
-  const { register } = useAuth()
-  const router = useRouter()
-  const [username, setUsername] = useState("")
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
-  const [birthday, setBirthday] = useState("")
-  const [loading, setLoading] = useState(false)
+  const { register } = useAuth();
+  const router = useRouter();
+  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [birthday, setBirthday] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const handleRegister = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setLoading(true)
-    try {
-      await register(username, email, password, new Date(birthday))
-      router.push("/dashboard")
-    } catch (error) {
-      console.error("Registration failed:", error)
-    } finally {
-      setLoading(false)
+    e.preventDefault();
+
+    if (!username || !email || !password || !birthday) {
+      toast.error("Vui lòng điền đầy đủ thông tin.");
+      return;
     }
-  }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      toast.error("Email không hợp lệ.");
+      return;
+    }
+
+    if (password.length < 6) {
+      toast.error("Mật khẩu phải có ít nhất 6 ký tự.");
+      return;
+    }
+
+    const birthdayDate = new Date(birthday);
+    const now = new Date();
+    if (birthdayDate >= now) {
+      toast.error("Ngày sinh không hợp lệ.");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await register(username, email, password, birthdayDate);
+      toast.success("Đăng ký thành công! Vui lòng đăng nhập.");
+      setTimeout(() => {
+        router.push("/login");
+      }, 3000);
+    } catch (error) {
+      console.error("Lỗi đăng ký:", error);
+      toast.error("Đăng ký thất bại. Vui lòng thử lại.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -40,8 +76,12 @@ export default function RegisterPage() {
       <main className="flex-1 flex items-center justify-center p-4">
         <Card className="w-full max-w-md">
           <CardHeader className="space-y-1">
-            <CardTitle className="text-2xl font-bold">Create an account</CardTitle>
-            <CardDescription>Enter your details to create your SmartCard account</CardDescription>
+            <CardTitle className="text-2xl font-bold">
+              Create an account
+            </CardTitle>
+            <CardDescription>
+              Enter your details to create your SmartCard account
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleRegister} className="space-y-4">
@@ -91,19 +131,29 @@ export default function RegisterPage() {
                 {loading ? "Creating account..." : "Create account"}
               </Button>
             </form>
-
+            <ToastContainer position="top-right" autoClose={3000} />
             <div className="relative my-6">
               <div className="absolute inset-0 flex items-center">
                 <span className="w-full border-t" />
               </div>
               <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-card px-2 text-muted-foreground">Or continue with</span>
+                <span className="bg-card px-2 text-muted-foreground">
+                  Or continue with
+                </span>
               </div>
             </div>
 
             <div className="flex gap-4">
-              <Button variant="outline" className="w-full" onClick={() => alert("Google login not implemented")}>
-                <svg viewBox="0 0 24 24" className="h-5 w-5 mr-2" aria-hidden="true">
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => alert("Google login not implemented")}
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  className="h-5 w-5 mr-2"
+                  aria-hidden="true"
+                >
                   <path
                     d="M12.0003 4.75C13.7703 4.75 15.3553 5.36002 16.6053 6.54998L20.0303 3.125C17.9502 1.19 15.2353 0 12.0003 0C7.31028 0 3.25527 2.69 1.28027 6.60998L5.27028 9.70498C6.21525 6.86002 8.87028 4.75 12.0003 4.75Z"
                     fill="#EA4335"
@@ -123,8 +173,18 @@ export default function RegisterPage() {
                 </svg>
                 Google
               </Button>
-              <Button variant="outline" className="w-full" onClick={() => alert("Microsoft login not implemented")}>
-                <svg width="21" height="21" viewBox="0 0 21 21" className="h-5 w-5 mr-2" aria-hidden="true">
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => alert("Microsoft login not implemented")}
+              >
+                <svg
+                  width="21"
+                  height="21"
+                  viewBox="0 0 21 21"
+                  className="h-5 w-5 mr-2"
+                  aria-hidden="true"
+                >
                   <path d="M10 0H0V10H10V0Z" fill="#F25022" />
                   <path d="M21 0H11V10H21V0Z" fill="#7FBA00" />
                   <path d="M10 11H0V21H10V11Z" fill="#00A4EF" />
@@ -145,6 +205,5 @@ export default function RegisterPage() {
         </Card>
       </main>
     </div>
-  )
+  );
 }
-

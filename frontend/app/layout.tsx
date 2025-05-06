@@ -1,15 +1,16 @@
-import type React from "react"
-import { Inter } from "next/font/google"
-import { ThemeProvider } from "@/components/theme-provider"
-import { AuthProvider } from "@/components/auth-provider"
-import "./globals.css"
+import type React from "react";
+import { Inter } from "next/font/google";
+import { ThemeProvider } from "@/components/theme-provider";
+import { AuthProvider } from "@/components/auth-provider";
+import { RouteGuard } from "@/components/route-guard";
+import "./globals.css";
 
-const inter = Inter({ subsets: ["latin"] })
+const inter = Inter({ subsets: ["latin"] });
 
 export default function RootLayout({
   children,
 }: {
-  children: React.ReactNode
+  children: React.ReactNode;
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
@@ -21,17 +22,17 @@ export default function RootLayout({
           disableTransitionOnChange
           storageKey="smartcard-theme"
         >
-          <AuthProvider>{children}</AuthProvider>
+          <AuthProvider>
+            <RouteGuard>{children}</RouteGuard>
+          </AuthProvider>
         </ThemeProvider>
       </body>
     </html>
-  )
+  );
 }
 
-
-
-import './globals.css'
+import "./globals.css";
 
 export const metadata = {
-      generator: 'v0.dev'
-    };
+  generator: "thucvi",
+};

@@ -1,35 +1,44 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import Link from "next/link"
-import { usePathname } from "next/navigation"
-import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
-import { Home, Plus, Library, Sparkles, BrainCircuit, X, ChevronLeft, ChevronRight } from "lucide-react"
+import { useState, useEffect } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import {
+  Home,
+  Plus,
+  Library,
+  Sparkles,
+  BrainCircuit,
+  X,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
 
 interface SidebarProps {
-  isOpen: boolean
-  onClose: () => void
+  isOpen: boolean;
+  onClose: () => void;
 }
 
 export function Sidebar({ isOpen, onClose }: SidebarProps) {
-  const pathname = usePathname()
-  const [collapsed, setCollapsed] = useState(false)
+  const pathname = usePathname();
+  const [collapsed, setCollapsed] = useState(false);
 
   // Load collapsed state from localStorage
   useEffect(() => {
-    const savedState = localStorage.getItem("sidebar-collapsed")
+    const savedState = localStorage.getItem("sidebar-collapsed");
     if (savedState !== null) {
-      setCollapsed(savedState === "true")
+      setCollapsed(savedState === "true");
     }
-  }, [])
+  }, []);
 
   // Save collapsed state to localStorage
   const toggleCollapse = () => {
-    const newState = !collapsed
-    setCollapsed(newState)
-    localStorage.setItem("sidebar-collapsed", String(newState))
-  }
+    const newState = !collapsed;
+    setCollapsed(newState);
+    localStorage.setItem("sidebar-collapsed", String(newState));
+  };
 
   const routes = [
     {
@@ -62,17 +71,22 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
       href: "/ai-quiz",
       active: pathname === "/ai-quiz",
     },
-  ]
+  ];
 
   return (
     <>
-      {isOpen && <div className="fixed inset-0 z-40 bg-background/80 backdrop-blur-sm md:hidden" onClick={onClose} />}
+      {isOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-background/80 backdrop-blur-sm md:hidden"
+          onClick={onClose}
+        />
+      )}
 
       <div
         className={cn(
           "fixed top-0 left-0 z-50 h-full border-r bg-background transition-all duration-300 ease-in-out md:translate-x-0 md:z-0",
           isOpen ? "translate-x-0" : "-translate-x-full",
-          collapsed ? "sidebar-collapsed" : "sidebar-expanded",
+          collapsed ? "sidebar-collapsed" : "sidebar-expanded"
         )}
       >
         <div className="flex h-16 items-center justify-between border-b px-4 md:hidden">
@@ -95,8 +109,10 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                   onClick={onClose}
                   className={cn(
                     "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
-                    route.active ? "bg-primary text-primary-foreground" : "hover:bg-muted",
-                    collapsed && "justify-center px-2",
+                    route.active
+                      ? "bg-primary text-primary-foreground"
+                      : "hover:bg-muted",
+                    collapsed && "justify-center px-2"
                   )}
                   title={collapsed ? route.label : undefined}
                 >
@@ -109,13 +125,23 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         </div>
 
         <div className="absolute bottom-4 right-2 hidden md:block">
-          <Button variant="ghost" size="icon" onClick={toggleCollapse} className="h-8 w-8">
-            {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
-            <span className="sr-only">{collapsed ? "Expand sidebar" : "Collapse sidebar"}</span>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={toggleCollapse}
+            className="h-8 w-8"
+          >
+            {collapsed ? (
+              <ChevronRight className="h-4 w-4" />
+            ) : (
+              <ChevronLeft className="h-4 w-4" />
+            )}
+            <span className="sr-only">
+              {collapsed ? "Expand sidebar" : "Collapse sidebar"}
+            </span>
           </Button>
         </div>
       </div>
     </>
-  )
+  );
 }
-
