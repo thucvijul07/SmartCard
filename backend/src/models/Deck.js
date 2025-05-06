@@ -7,6 +7,11 @@ const deckSchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
+    parent_deck_id: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Deck",
+      default: null,
+    },
     name: {
       type: String,
       required: true,
