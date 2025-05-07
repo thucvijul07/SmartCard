@@ -94,12 +94,10 @@ export default function LibraryPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
-  // Filter flashcard sets based on search query
   const filteredFlashcardSets = flashcardSets.filter((set) =>
     set.title.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  // Filter practice quizzes based on search query
   const filteredPracticeQuizzes = practiceQuizzes.filter((quiz) =>
     quiz.title.toLowerCase().includes(searchQuery.toLowerCase())
   );
