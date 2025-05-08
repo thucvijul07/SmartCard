@@ -37,12 +37,30 @@ export default function AIFlashcardPage() {
   );
   const [inputText, setInputText] = useState("");
   const [title, setTitle] = useState("");
+  const [file, setFile] = useState<File | null>(null);
   const [numCards, setNumCards] = useState([10]);
   const [difficulty, setDifficulty] = useState("medium");
   const [isGenerating, setIsGenerating] = useState(false);
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = e.target.files?.[0] || null;
+    setFile(selectedFile);
+    setInputText(""); // Clear text input when a file is selected
+  };
+
+  const handleFileRead = async () => {
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      const text = event.target?.result as string;
+      setInputText(text);
+    };
+    reader.readAsText(file);
+  };
+
   const handleGenerate = async () => {
-    if (!inputText.trim()) return;
+    if (!inputText.trim() && !file) return; // Ensure either text or file is provided
 
     setIsGenerating(true);
 
@@ -65,6 +83,8 @@ export default function AIFlashcardPage() {
       setIsGenerating(false);
     }
   };
+
+  const isGenerateDisabled = !inputText.trim() && !file; // Disable generate button if no input
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -145,11 +165,27 @@ export default function AIFlashcardPage() {
                             <h3 className="text-lg font-medium mb-2">
                               Upload a file
                             </h3>
-                            <p className="text-sm text-muted-foreground mb-4">
-                              Drag and drop or click to upload PDF, DOCX, or TXT
-                              files
+                            <p className="text-sm text-muted-foreground mb-2">
+                              Drag and drop or click to upload TXT files
+                              (PDF/DOCX not supported here)
                             </p>
-                            <Button variant="outline">Select File</Button>
+
+                            <Input
+                              type="file"
+                              accept=".txt"
+                              onChange={(e) => {
+                                handleFileChange(e);
+                                handleFileRead(); // Gọi ngay khi file được chọn
+                              }}
+                              className="w-full cursor-pointer"
+                            />
+
+                            {file && (
+                              <p className="text-sm text-muted-foreground mt-2">
+                                Selected file:{" "}
+                                <span className="font-medium">{file.name}</span>
+                              </p>
+                            )}
                           </div>
                         </div>
                       </TabsContent>
@@ -170,9 +206,9 @@ export default function AIFlashcardPage() {
                       </Label>
                       <Slider
                         id="num-cards"
-                        min={2}
+                        min={1}
                         max={20}
-                        step={2}
+                        step={1}
                         value={numCards}
                         onValueChange={setNumCards}
                       />
@@ -196,7 +232,7 @@ export default function AIFlashcardPage() {
                     <Button
                       className="w-full"
                       onClick={handleGenerate}
-                      disabled={!inputText.trim() || isGenerating}
+                      disabled={isGenerateDisabled || isGenerating}
                     >
                       {isGenerating ? (
                         <>

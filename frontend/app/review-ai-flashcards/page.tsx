@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { toast, ToastContainer } from "react-toastify";
 import { useRouter } from "next/navigation";
 import { useSearchParams } from "next/navigation";
 import axiosClient from "@/lib/axiosClient";
@@ -75,10 +76,23 @@ export default function ReviewAIFlashcardsPage() {
     setCards(newCards);
   };
 
-  const handleSave = () => {
-    // Save logic would go here
-    alert("Flashcard set saved to your library!");
-    router.push("/library");
+  const handleSave = async () => {
+    try {
+      const response = await axiosClient.post("/decks", {
+        name: title,
+        description,
+        cards: cards.map((card) => ({
+          question: card.question,
+          answer: card.answer,
+        })),
+      });
+
+      toast.success("Bộ thẻ đã được lưu thành công!");
+      router.push("/library");
+    } catch (error) {
+      console.error("Lỗi lưu bộ thẻ", error);
+      toast.error("Lỗi lưu bộ thẻ. Vui lòng thử lại.");
+    }
   };
 
   if (loading) {
@@ -308,6 +322,7 @@ export default function ReviewAIFlashcardsPage() {
               </TabsContent>
             </Tabs>
           </div>
+          <ToastContainer position="top-right" autoClose={3000} />
         </main>
       </div>
     </div>

@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import axiosClient from "@/lib/axiosClient";
 import { useRouter } from "next/navigation";
 import { Header } from "@/components/header";
 import { Sidebar } from "@/components/sidebar";
@@ -10,53 +11,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { BookOpen, Edit, Search, Clock, Star, BarChart } from "lucide-react";
 
-// Mock data for flashcard sets
-const flashcardSets = [
-  {
-    id: "1",
-    title: "Biology 101",
-    cards: 50,
-    lastStudied: "2 days ago",
-    creator: "You",
-  },
-  {
-    id: "2",
-    title: "Chemistry Basics",
-    cards: 30,
-    lastStudied: "1 week ago",
-    creator: "You",
-  },
-  {
-    id: "3",
-    title: "Spanish Vocabulary",
-    cards: 100,
-    lastStudied: "3 days ago",
-    creator: "You",
-  },
-  {
-    id: "4",
-    title: "World History",
-    cards: 75,
-    lastStudied: "5 days ago",
-    creator: "You",
-  },
-  {
-    id: "5",
-    title: "Physics Formulas",
-    cards: 40,
-    lastStudied: "2 weeks ago",
-    creator: "You",
-  },
-  {
-    id: "6",
-    title: "English Literature",
-    cards: 60,
-    lastStudied: "1 day ago",
-    creator: "You",
-  },
-];
-
-// Mock data for practice quizzes
+type Deck = {
+  id: string;
+  name: string;
+  description: string;
+  parent_deck_id: string | null;
+  card_count: number;
+}; // Mock data for practice quizzes
 const practiceQuizzes = [
   {
     id: "1",
@@ -93,9 +54,31 @@ export default function LibraryPage() {
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [decks, setDecks] = useState<Deck[]>([]);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    const fetchDecks = async () => {
+      try {
+        const response = await axiosClient.get("/decks");
+        if (response.data.is_success) {
+          setDecks(response.data.data);
+        } else {
+          console.error("Failed to fetch decks");
+        }
+      } catch (error) {
+        console.error("Error fetching decks:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const filteredFlashcardSets = flashcardSets.filter((set) =>
-    set.title.toLowerCase().includes(searchQuery.toLowerCase())
+    fetchDecks();
+  }, []);
+  if (loading) {
+    return <div>Loading...</div>;
+  }
+  const filteredFlashcardSets = decks.filter((set) =>
+    set.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const filteredPracticeQuizzes = practiceQuizzes.filter((quiz) =>
@@ -154,15 +137,13 @@ export default function LibraryPage() {
                       >
                         <CardContent className="p-6">
                           <div className="flex justify-between items-start mb-2">
-                            <h3 className="font-medium">{set.title}</h3>
-                            <div className="flex items-center text-xs text-muted-foreground">
-                              <Clock className="h-3 w-3 mr-1" />
-                              {set.lastStudied}
-                            </div>
+                            <h3 className="font-medium">{set.name}</h3>
                           </div>
                           <div className="flex justify-between text-sm text-muted-foreground mb-4">
-                            <span>{set.cards} cards</span>
-                            <span>By: {set.creator}</span>
+                            <span>{set.card_count} cards</span>
+                          </div>
+                          <div className="flex justify-between text-sm text-muted-foreground mb-4">
+                            <span>{set.description}</span>
                           </div>
                           <div className="flex gap-2">
                             <Button

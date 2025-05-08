@@ -1,65 +1,83 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { useRouter } from "next/navigation"
-import { Header } from "@/components/header"
-import { Sidebar } from "@/components/sidebar"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { Card, CardContent } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Plus, Trash2, Save, ArrowLeft, ArrowRight } from "lucide-react"
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { Header } from "@/components/header";
+import { Sidebar } from "@/components/sidebar";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Card, CardContent } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Plus, Trash2, Save, ArrowLeft, ArrowRight } from "lucide-react";
+import axiosClient from "@/lib/axiosClient";
 
 type FlashCard = {
-  id: string
-  term: string
-  definition: string
-}
+  id: string;
+  term: string;
+  definition: string;
+};
 
 export default function CreatePage() {
-  const router = useRouter()
-  const [sidebarOpen, setSidebarOpen] = useState(false)
-  const [title, setTitle] = useState("")
-  const [description, setDescription] = useState("")
+  const router = useRouter();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
   const [cards, setCards] = useState<FlashCard[]>([
     { id: "1", term: "", definition: "" },
     { id: "2", term: "", definition: "" },
-  ])
-  const [currentCardIndex, setCurrentCardIndex] = useState(0)
+  ]);
+  const [currentCardIndex, setCurrentCardIndex] = useState(0);
 
   const addCard = () => {
     const newCard = {
       id: `${cards.length + 1}`,
       term: "",
       definition: "",
-    }
-    setCards([...cards, newCard])
-    setCurrentCardIndex(cards.length)
-  }
+    };
+    setCards([...cards, newCard]);
+    setCurrentCardIndex(cards.length);
+  };
 
   const removeCard = (index: number) => {
-    if (cards.length <= 1) return
-    const newCards = [...cards]
-    newCards.splice(index, 1)
-    setCards(newCards)
+    if (cards.length <= 1) return;
+    const newCards = [...cards];
+    newCards.splice(index, 1);
+    setCards(newCards);
     if (currentCardIndex >= newCards.length) {
-      setCurrentCardIndex(newCards.length - 1)
+      setCurrentCardIndex(newCards.length - 1);
     }
-  }
+  };
 
-  const updateCard = (index: number, field: "term" | "definition", value: string) => {
-    const newCards = [...cards]
-    newCards[index] = { ...newCards[index], [field]: value }
-    setCards(newCards)
-  }
+  const updateCard = (
+    index: number,
+    field: "term" | "definition",
+    value: string
+  ) => {
+    const newCards = [...cards];
+    newCards[index] = { ...newCards[index], [field]: value };
+    setCards(newCards);
+  };
 
-  const handleSave = () => {
-    // Save logic would go here
-    alert("Flashcard set saved!")
-    router.push("/dashboard")
-  }
+  const handleSave = async () => {
+    try {
+      const response = await axiosClient.post("/decks", {
+        name: title,
+        description,
+        cards: cards.map((card) => ({
+          question: card.term,
+          answer: card.definition,
+        })),
+      });
+
+      alert("Flashcard set saved to your library!");
+      router.push("/library");
+    } catch (error) {
+      console.error("Error saving flashcard set:", error);
+      alert("Failed to save flashcard set. Please try again.");
+    }
+  };
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -113,7 +131,9 @@ export default function CreatePage() {
                       <Button
                         variant="outline"
                         size="icon"
-                        onClick={() => setCurrentCardIndex(Math.max(0, currentCardIndex - 1))}
+                        onClick={() =>
+                          setCurrentCardIndex(Math.max(0, currentCardIndex - 1))
+                        }
                         disabled={currentCardIndex === 0}
                       >
                         <ArrowLeft className="h-4 w-4" />
@@ -121,7 +141,11 @@ export default function CreatePage() {
                       <Button
                         variant="outline"
                         size="icon"
-                        onClick={() => setCurrentCardIndex(Math.min(cards.length - 1, currentCardIndex + 1))}
+                        onClick={() =>
+                          setCurrentCardIndex(
+                            Math.min(cards.length - 1, currentCardIndex + 1)
+                          )
+                        }
                         disabled={currentCardIndex === cards.length - 1}
                       >
                         <ArrowRight className="h-4 w-4" />
@@ -137,7 +161,9 @@ export default function CreatePage() {
                           id="term"
                           placeholder="Enter term"
                           value={cards[currentCardIndex]?.term || ""}
-                          onChange={(e) => updateCard(currentCardIndex, "term", e.target.value)}
+                          onChange={(e) =>
+                            updateCard(currentCardIndex, "term", e.target.value)
+                          }
                           rows={2}
                         />
                       </div>
@@ -147,7 +173,13 @@ export default function CreatePage() {
                           id="definition"
                           placeholder="Enter definition"
                           value={cards[currentCardIndex]?.definition || ""}
-                          onChange={(e) => updateCard(currentCardIndex, "definition", e.target.value)}
+                          onChange={(e) =>
+                            updateCard(
+                              currentCardIndex,
+                              "definition",
+                              e.target.value
+                            )
+                          }
                           rows={4}
                         />
                       </div>
@@ -155,7 +187,11 @@ export default function CreatePage() {
                   </Card>
 
                   <div className="flex items-center justify-between">
-                    <Button variant="outline" onClick={() => removeCard(currentCardIndex)} disabled={cards.length <= 1}>
+                    <Button
+                      variant="outline"
+                      onClick={() => removeCard(currentCardIndex)}
+                      disabled={cards.length <= 1}
+                    >
                       <Trash2 className="mr-2 h-4 w-4" />
                       Delete Card
                     </Button>
@@ -169,8 +205,14 @@ export default function CreatePage() {
               <TabsContent value="preview">
                 <div className="space-y-6">
                   <div className="text-center mb-4">
-                    <h2 className="text-2xl font-bold">{title || "Untitled Flashcard Set"}</h2>
-                    {description && <p className="text-muted-foreground mt-2">{description}</p>}
+                    <h2 className="text-2xl font-bold">
+                      {title || "Untitled Flashcard Set"}
+                    </h2>
+                    {description && (
+                      <p className="text-muted-foreground mt-2">
+                        {description}
+                      </p>
+                    )}
                   </div>
 
                   <div className="flex items-center justify-between mb-4">
@@ -181,7 +223,9 @@ export default function CreatePage() {
                       <Button
                         variant="outline"
                         size="icon"
-                        onClick={() => setCurrentCardIndex(Math.max(0, currentCardIndex - 1))}
+                        onClick={() =>
+                          setCurrentCardIndex(Math.max(0, currentCardIndex - 1))
+                        }
                         disabled={currentCardIndex === 0}
                       >
                         <ArrowLeft className="h-4 w-4" />
@@ -189,7 +233,11 @@ export default function CreatePage() {
                       <Button
                         variant="outline"
                         size="icon"
-                        onClick={() => setCurrentCardIndex(Math.min(cards.length - 1, currentCardIndex + 1))}
+                        onClick={() =>
+                          setCurrentCardIndex(
+                            Math.min(cards.length - 1, currentCardIndex + 1)
+                          )
+                        }
                         disabled={currentCardIndex === cards.length - 1}
                       >
                         <ArrowRight className="h-4 w-4" />
@@ -207,14 +255,17 @@ export default function CreatePage() {
                         </div>
                         <div className="absolute inset-0 flex items-center justify-center p-6 backface-hidden bg-card rounded-lg border rotate-y-180">
                           <div className="text-lg text-center">
-                            {cards[currentCardIndex]?.definition || "Definition"}
+                            {cards[currentCardIndex]?.definition ||
+                              "Definition"}
                           </div>
                         </div>
                       </div>
                     </Card>
                   </div>
 
-                  <div className="text-center text-sm text-muted-foreground">Click on the card to flip it</div>
+                  <div className="text-center text-sm text-muted-foreground">
+                    Click on the card to flip it
+                  </div>
                 </div>
               </TabsContent>
             </Tabs>
@@ -222,6 +273,5 @@ export default function CreatePage() {
         </main>
       </div>
     </div>
-  )
+  );
 }
-
