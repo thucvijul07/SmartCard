@@ -41,4 +41,74 @@ const generateFlashcards = async (req, res) => {
   }
 };
 
-export { updateCard, generateFlashcards };
+const getCardsToReview = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const cards = await cardService.getCardsToReviewService(userId);
+
+    res.status(200).json({
+      is_success: true,
+      data: cards,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({
+      is_success: false,
+      message: "Không thể lấy danh sách thẻ để ôn tập",
+      error: err.message,
+    });
+  }
+};
+
+const updateReviewResult = async (req, res) => {
+  try {
+    const { cardId, quality, timestamp } = req.body;
+    const userId = req.user._id;
+
+    const updatedCard = await cardService.updateReviewResultService(
+      userId,
+      cardId,
+      quality,
+      timestamp
+    );
+
+    res.status(200).json({
+      is_success: true,
+      data: updatedCard,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({
+      is_success: false,
+      message: "Không thể cập nhật kết quả ôn tập",
+      error: err.message,
+    });
+  }
+};
+
+const getReviewStats = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const stats = await cardService.getReviewStatsService(userId);
+
+    res.status(200).json({
+      is_success: true,
+      data: stats,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({
+      is_success: false,
+      message: "Không thể lấy thống kê ôn tập",
+      error: err.message,
+    });
+  }
+};
+
+export {
+  updateCard,
+  generateFlashcards,
+  getCardsToReview,
+  updateReviewResult,
+  getReviewStats,
+};
