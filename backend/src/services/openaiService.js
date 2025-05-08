@@ -9,11 +9,12 @@ const openai = new OpenAI({
 
 const generateFlashcardsWithOpenAI = async (text, numCards, difficulty) => {
   const prompt = `
-    As an educator developing a learning application focused on memorization, 
+  As an educator developing a learning application focused on memorization, 
+  ***if the text is meaningless, please return an empty array.***
     your task is to generate ${numCards} flashcards based on the content provided below. 
     The difficulty level is ${difficulty}. These flashcards are intended to help learners 
     remember key facts, concepts, or ideas from the material.
-
+    if the text is too long, please summarize it to fit the flashcards.
     ---
 
     ${text}

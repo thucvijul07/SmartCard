@@ -1,9 +1,26 @@
 import Deck from "../models/Deck.js";
 import Card from "../models/Card.js";
 
-// Lấy tất cả các deck của người dùng
 export const getAllDecksService = async (userId) => {
-  return await Deck.find({ user_id: userId });
+  const decks = await Deck.find({ user_id: userId });
+  const deckWithCardCounts = await Promise.all(
+    decks.map(async (deck) => {
+      const cardCount = await Card.countDocuments({
+        deck_id: deck._id,
+        user_id: userId,
+      });
+
+      return {
+        id: deck._id,
+        name: deck.name,
+        description: deck.description,
+        parent_deck_id: deck.parent_deck_id,
+        card_count: cardCount,
+      };
+    })
+  );
+
+  return deckWithCardCounts;
 };
 
 // Lấy chi tiết 1 deck theo id và bao gồm cả các cards của nó

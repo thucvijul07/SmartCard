@@ -4,10 +4,16 @@ const getAllDecks = async (req, res) => {
   try {
     const userId = req.user._id;
     const decks = await deckService.getAllDecksService(userId);
-    res.status(200).json(decks);
+
+    res.status(200).json({
+      is_success: true,
+      data: decks,
+    });
   } catch (err) {
+    console.error("Lỗi khi lấy danh sách deck:", err);
     res.status(500).json({
-      message: "Lỗi khi lấy danh sách deck",
+      is_success: false,
+      message: "Không thể lấy danh sách deck",
       error: err.message,
     });
   }
@@ -35,6 +41,14 @@ const getDeckById = async (req, res) => {
 const createDeckWithCards = async (req, res) => {
   try {
     const { name, description, cards } = req.body;
+
+    if (!name || !cards || !Array.isArray(cards) || cards.length === 0) {
+      return res.status(400).json({
+        message:
+          "Tên deck, mô tả và danh sách thẻ là bắt buộc. Danh sách thẻ phải là một mảng không rỗng.",
+      });
+    }
+
     const userId = req.user._id;
 
     const { deck, savedCards } = await deckService.createDeckWithCardsService(
@@ -45,13 +59,14 @@ const createDeckWithCards = async (req, res) => {
     );
 
     res.status(201).json({
-      message: "Tạo deck và cards thành công",
+      message: "Tạo bộ thẻ thành công",
       deck,
       cards: savedCards,
     });
   } catch (err) {
+    console.error("Error creating deck and cards:", err);
     res.status(500).json({
-      message: "Lỗi khi tạo deck và cards",
+      message: "Lỗi khi tạo bộ thẻ",
       error: err.message,
     });
   }
