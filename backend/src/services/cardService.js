@@ -22,69 +22,71 @@ const updateCard = async (userId, id, data) => {
 };
 
 // Service to get the list of cards to review
-const getCardsToReviewService = async (userId) => {
-  const now = new Date();
+const getCardsToReviewService = async (userId, deckId) => {
   return await Card.find({
-    userId,
-    nextReview: { $lte: now },
-  });
+    user_id: userId,
+    deck_id: deckId,
+  }).sort({ due: 1 }); // Sắp xếp theo due (gần đến trước, xa đến sau)
 };
 
 // Service to update the review result of a card
-const updateReviewResultService = async (
-  userId,
-  cardId,
-  quality,
-  timestamp
-) => {
-  const card = await Card.findOne({ _id: cardId, userId });
+const updateReviewResultService = async (userId, deckId, cardData) => {
+  const card = await Card.findOne({
+    _id: cardData.id,
+    user_id: userId,
+    deck_id: deckId,
+  });
+
   if (!card) {
     throw new Error("Card not found");
   }
 
-  // Update card properties based on quality
-  card.reviews += 1;
-  switch (quality) {
-    case "again":
-      card.interval = 1;
-      card.ease = Math.max(1.3, card.ease - 0.2);
-      card.box = 0;
-      break;
-    case "hard":
-      card.interval = Math.round(card.interval * 1.2);
-      card.ease = Math.max(1.3, card.ease - 0.15);
-      card.box = Math.min(5, card.box + 1);
-      break;
-    case "good":
-      card.interval = Math.round(card.interval * card.ease);
-      card.box = Math.min(5, card.box + 1);
-      break;
-    case "easy":
-      card.interval = Math.round(card.interval * card.ease * 1.3);
-      card.ease += 0.15;
-      card.box = Math.min(5, card.box + 2);
-      break;
-  }
-
-  // Calculate next review date
-  const nextReview = new Date(timestamp);
-  nextReview.setMinutes(nextReview.getMinutes() + card.interval);
-  card.nextReview = nextReview;
+  // Update card properties
+  card.stability = cardData.stability;
+  card.difficulty = cardData.difficulty;
+  card.scheduled_days = cardData.scheduled_days;
+  card.elapsed_days = cardData.elapsed_days;
+  card.state = cardData.state;
+  card.last_review = cardData.last_review;
+  card.due = cardData.due;
 
   await card.save();
+
+  // Insert a new review log
+  const reviewLog = new ReviewLog({
+    card_id: card._id,
+    user_id: userId,
+    difficulty: cardData.difficulty,
+    due: cardData.due,
+    elapsed_days: cardData.elapsed_days,
+    last_elapsed_days: cardData.last_elapsed_days || 0, // Default to 0 if not provided
+    rating: cardData.rating, // Assuming rating is passed in cardData
+    review: cardData.last_review,
+    scheduled_days: cardData.scheduled_days,
+    stability: cardData.stability,
+    state: cardData.state,
+  });
+
+  await reviewLog.save();
+
   return card;
 };
 
 // Service to get review statistics
-const getReviewStatsService = async (userId) => {
+const getReviewStatsService = async (userId, deckId) => {
   const now = new Date();
-  const totalCards = await Card.countDocuments({ userId });
+  const totalCards = await Card.countDocuments({
+    user_id: userId,
+    deck_id: deckId,
+  });
   const dueToday = await Card.countDocuments({
-    userId,
-    nextReview: { $lte: now },
+    user_id: userId,
+    deck_id: deckId,
+    due: { $lte: now },
   });
   const reviewedToday = await ReviewLog.countDocuments({
-    userId,
+    user_id: userId,
+    deck_id: deckId,
     timestamp: {
       $gte: new Date(now.setHours(0, 0, 0, 0)),
       $lte: new Date(now.setHours(23, 59, 59, 999)),

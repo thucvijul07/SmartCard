@@ -16,12 +16,12 @@ router.put("/:id", Auth.UserAuth, updateCard);
 router.post("/generate", Auth.UserAuth, generateFlashcards);
 
 // API lấy danh sách thẻ để ôn tập (user)
-router.get("/review", Auth.UserAuth, getCardsToReview);
+router.get("/review", Auth.UserAuth, getCardsToReview); // Thêm deckId vào query
 
 // API cập nhật kết quả ôn tập (user)
-router.post("/review", Auth.UserAuth, updateReviewResult);
+router.post("/review", Auth.UserAuth, updateReviewResult); // Thêm deckId vào body
 
 // API lấy thống kê ôn tập (user)
-router.get("/stats", Auth.UserAuth, getReviewStats);
+router.get("/stats", Auth.UserAuth, getReviewStats); // Thêm deckId vào query
 
 export default router;

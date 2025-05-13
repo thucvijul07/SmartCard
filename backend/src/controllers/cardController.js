@@ -1,4 +1,4 @@
-import cardService from "../services/cardService.js";
+import * as cardService from "../services/cardService.js";
 import openaiService from "../services/openaiService.js";
 
 const updateCard = async (req, res) => {
@@ -44,7 +44,19 @@ const generateFlashcards = async (req, res) => {
 const getCardsToReview = async (req, res) => {
   try {
     const userId = req.user._id;
-    const cards = await cardService.getCardsToReviewService(userId);
+    const { deckId } = req.query;
+    const now = new Date();
+
+    if (!deckId) {
+      return res.status(400).json({ message: "Thiếu deckId" });
+    }
+
+    // Fetch cards with due date <= today and matching deckId
+    const cards = await cardService.getCardsToReviewService(
+      userId,
+      deckId,
+      now
+    );
 
     res.status(200).json({
       is_success: true,
@@ -62,19 +74,23 @@ const getCardsToReview = async (req, res) => {
 
 const updateReviewResult = async (req, res) => {
   try {
-    const { cardId, quality, timestamp } = req.body;
+    const { cards, deckId } = req.body;
     const userId = req.user._id;
 
-    const updatedCard = await cardService.updateReviewResultService(
-      userId,
-      cardId,
-      quality,
-      timestamp
+    if (!deckId) {
+      return res.status(400).json({ message: "Thiếu deckId" });
+    }
+
+    // Update each card and insert review logs
+    const updatedCards = await Promise.all(
+      cards.map((card) =>
+        cardService.updateReviewResultService(userId, deckId, card)
+      )
     );
 
     res.status(200).json({
       is_success: true,
-      data: updatedCard,
+      data: updatedCards,
     });
   } catch (err) {
     console.error(err);
@@ -89,7 +105,13 @@ const updateReviewResult = async (req, res) => {
 const getReviewStats = async (req, res) => {
   try {
     const userId = req.user._id;
-    const stats = await cardService.getReviewStatsService(userId);
+    const { deckId } = req.query; // Lấy deckId từ query params
+
+    if (!deckId) {
+      return res.status(400).json({ message: "Thiếu deckId" });
+    }
+
+    const stats = await cardService.getReviewStatsService(userId, deckId);
 
     res.status(200).json({
       is_success: true,

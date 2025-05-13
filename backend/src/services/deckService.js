@@ -49,11 +49,15 @@ export const createDeckWithCardsService = async (
   });
   const savedDeck = await newDeck.save();
 
+  const now = new Date();
+  now.setHours(23, 59, 0, 0);
+
   const cardDocs = cards.map((card) => ({
     deck_id: savedDeck._id,
     user_id: userId,
     question: card.question,
     answer: card.answer,
+    due: now,
   }));
 
   const savedCards = await Card.insertMany(cardDocs);
