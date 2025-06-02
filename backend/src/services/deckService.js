@@ -1,8 +1,9 @@
 import Deck from "../models/Deck.js";
 import Card from "../models/Card.js";
+import ReviewLog from "../models/ReviewLog.js";
 
 export const getAllDecksService = async (userId) => {
-  const decks = await Deck.find({ user_id: userId });
+  const decks = await Deck.find({ user_id: userId }).sort({ created_at: -1 });
   const deckWithCardCounts = await Promise.all(
     decks.map(async (deck) => {
       const cardCount = await Card.countDocuments({
@@ -123,7 +124,10 @@ export const deleteDeckService = async (userId, deckId) => {
   const deck = await Deck.findOneAndDelete({ _id: deckId, user_id: userId });
   if (!deck) return null;
 
+  // Xóa tất cả các card thuộc deck này
   await Card.deleteMany({ deck_id: deckId, user_id: userId });
+  // Xóa tất cả reviewlog thuộc deck này
+  await ReviewLog.deleteMany({ deck_id: deckId, user_id: userId });
 
   return true;
 };

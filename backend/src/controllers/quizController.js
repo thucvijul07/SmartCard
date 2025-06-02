@@ -5,7 +5,7 @@ const generateQuizzes = async (req, res) => {
   try {
     const { text, numQA, difficulty } = req.body;
 
-    if (!text || !numQA || !difficulty || !typeQuiz) {
+    if (!text || !numQA || !difficulty) {
       return res.status(400).json({ message: "Thiếu dữ liệu đầu vào" });
     }
 

@@ -5,14 +5,15 @@ import {
   updateQuiz,
   deleteQuiz,
 } from "../controllers/quizController.js";
+import { Auth } from "../middlewares/auth.js";
 
 const router = express.Router();
 
 // AI quiz generation
-router.post("/generate", generateQuizzes);
+router.post("/generateQuiz", Auth.UserAuth, generateQuizzes);
 // CRUD for quiz
-router.post("/", createQuiz);
-router.put("/:id", updateQuiz);
-router.delete("/:id", deleteQuiz);
+router.post("/", Auth.UserAuth, createQuiz);
+router.put("/:id", Auth.UserAuth, updateQuiz);
+router.delete("/:id", Auth.UserAuth, deleteQuiz);
 
 export default router;

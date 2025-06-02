@@ -74,18 +74,16 @@ const getCardsToReview = async (req, res) => {
 
 const updateReviewResult = async (req, res) => {
   try {
-    const { cards, deckId } = req.body;
+    const { cards } = req.body;
     const userId = req.user._id;
 
-    if (!deckId) {
-      return res.status(400).json({ message: "Thiếu deckId" });
+    if (!cards || !Array.isArray(cards)) {
+      return res.status(400).json({ message: "Dữ liệu không hợp lệ" });
     }
 
     // Update each card and insert review logs
     const updatedCards = await Promise.all(
-      cards.map((card) =>
-        cardService.updateReviewResultService(userId, deckId, card)
-      )
+      cards.map((card) => cardService.updateReviewResultService(userId, card))
     );
 
     res.status(200).json({

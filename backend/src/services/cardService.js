@@ -1,5 +1,17 @@
+import mongoose from "mongoose";
 import Card from "../models/Card.js";
 import ReviewLog from "../models/ReviewLog.js";
+import {
+  createEmptyCard,
+  generatorParameters,
+  fsrs,
+  Rating,
+  State,
+} from "ts-fsrs";
+
+const fsrsInstance = fsrs(
+  generatorParameters({ enable_fuzz: true, enable_short_term: true })
+);
 
 const updateCard = async (userId, id, data) => {
   const updatedCard = await Card.findOneAndUpdate(
@@ -21,50 +33,170 @@ const updateCard = async (userId, id, data) => {
   return updatedCard;
 };
 
-// Service to get the list of cards to review
-const getCardsToReviewService = async (userId, deckId) => {
-  return await Card.find({
+const getCardsToReviewService = async (
+  userId,
+  deckId,
+  now = new Date(),
+  maxNew = 20
+) => {
+  if (!mongoose.Types.ObjectId.isValid(deckId)) {
+    return [];
+  }
+  const deckObjectId = new mongoose.Types.ObjectId(deckId);
+  const nowDate = new Date(now);
+  const startOfToday = new Date(nowDate);
+  startOfToday.setHours(0, 0, 0, 0);
+  const endOfToday = new Date(nowDate);
+  endOfToday.setHours(23, 59, 59, 999);
+
+  // 1. Learning cards: state = 1, due <= endOfToday
+  const learningCards = await Card.find({
     user_id: userId,
-    deck_id: deckId,
-  }).sort({ due: 1 }); // Sắp xếp theo due (gần đến trước, xa đến sau)
+    deck_id: deckObjectId,
+    state: 1,
+    due: { $lte: endOfToday },
+    deleted_at: null,
+  }).sort({ due: 1 });
+
+  // 2. Review cards: state = 2, due <= now
+  const reviewCards = await Card.find({
+    user_id: userId,
+    deck_id: deckObjectId,
+    state: 2,
+    due: { $lte: nowDate },
+    deleted_at: null,
+  }).sort({ due: 1 });
+
+  // 3. New cards: state = 0, chưa từng review, sort by created_at, limit maxNew
+  const newCardIds = await Card.aggregate([
+    {
+      $match: {
+        user_id: userId,
+        deck_id: deckObjectId,
+        state: 0,
+        deleted_at: null,
+      },
+    },
+    {
+      $lookup: {
+        from: "reviewlogs",
+        let: { cardId: "$_id" },
+        pipeline: [
+          {
+            $match: {
+              $expr: {
+                $and: [
+                  { $eq: ["$card_id", "$$cardId"] },
+                  { $eq: ["$user_id", userId] },
+                ],
+              },
+            },
+          },
+        ],
+        as: "logs",
+      },
+    },
+    { $match: { logs: { $size: 0 } } },
+    { $sort: { created_at: 1 } },
+    { $limit: maxNew },
+    { $project: { _id: 1 } },
+  ]);
+  const newCardIdList = newCardIds.map((c) => c._id);
+  const newCards = await Card.find({ _id: { $in: newCardIdList } }).sort({
+    created_at: 1,
+  });
+
+  // Kết hợp đúng thứ tự: learning → review → new
+  const allCards = [...learningCards, ...reviewCards, ...newCards];
+
+  // For each card, calculate nextDueTimes for each rating using ts-fsrs
+  const cardsWithNextDue = allCards.map((card) => {
+    // Chuyển đổi dữ liệu card sang dạng phù hợp cho ts-fsrs
+    const cardInput = {
+      due: card.due || nowDate,
+      stability: card.stability || 0,
+      difficulty: card.difficulty || 0,
+      elapsed_days: card.elapsed_days || 0,
+      scheduled_days: card.scheduled_days || 0,
+      learning_steps: card.learningStep || 0,
+      reps: card.reps || 0,
+      lapses: card.lapses || 0,
+      state: card.state ?? State.New,
+      last_review: card.last_review || null,
+    };
+    const scheduling = fsrsInstance.repeat(cardInput, nowDate);
+    const nextDueTimes = {
+      Again: scheduling[Rating.Again].card.due.toISOString(),
+      Hard: scheduling[Rating.Hard].card.due.toISOString(),
+      Good: scheduling[Rating.Good].card.due.toISOString(),
+      Easy: scheduling[Rating.Easy].card.due.toISOString(),
+    };
+    const cardObj = card.toObject();
+    cardObj.nextDueTimes = nextDueTimes;
+    return cardObj;
+  });
+  return cardsWithNextDue;
 };
 
 // Service to update the review result of a card
-const updateReviewResultService = async (userId, deckId, cardData) => {
+const updateReviewResultService = async (userId, cardData) => {
+  const cardId = cardData._id || cardData.id;
+  if (!cardId) throw new Error("Card id is required");
   const card = await Card.findOne({
-    _id: cardData.id,
+    _id: cardId,
     user_id: userId,
-    deck_id: deckId,
   });
 
   if (!card) {
     throw new Error("Card not found");
   }
 
-  // Update card properties
-  card.stability = cardData.stability;
-  card.difficulty = cardData.difficulty;
-  card.scheduled_days = cardData.scheduled_days;
-  card.elapsed_days = cardData.elapsed_days;
-  card.state = cardData.state;
-  card.last_review = cardData.last_review;
-  card.due = cardData.due;
+  const review_time = cardData.last_review
+    ? new Date(cardData.last_review)
+    : new Date();
+  // Chuẩn hóa dữ liệu card cho ts-fsrs
+  const cardInput = {
+    due: card.due || review_time,
+    stability: card.stability || 0,
+    difficulty: card.difficulty || 0,
+    elapsed_days: card.elapsed_days || 0,
+    scheduled_days: card.scheduled_days || 0,
+    learning_steps: card.learningStep || 0,
+    reps: card.reps || 0,
+    lapses: card.lapses || 0,
+    state: card.state ?? State.New,
+    last_review: card.last_review || null,
+  };
+  // Tính toán trạng thái mới sau review
+  const result = fsrsInstance.next(cardInput, review_time, cardData.rating);
+  const newCard = result.card;
 
+  card.difficulty = newCard.difficulty;
+  card.stability = newCard.stability;
+  card.scheduled_days = newCard.scheduled_days;
+  card.elapsed_days = newCard.elapsed_days;
+  card.state = newCard.state;
+  card.last_review = review_time;
+  card.due = newCard.due;
+  card.learningStep = newCard.learning_steps;
+  card.reps = newCard.reps;
+  card.lapses = newCard.lapses;
   await card.save();
 
-  // Insert a new review log
   const reviewLog = new ReviewLog({
     card_id: card._id,
     user_id: userId,
-    difficulty: cardData.difficulty,
-    due: cardData.due,
-    elapsed_days: cardData.elapsed_days,
-    last_elapsed_days: cardData.last_elapsed_days || 0, // Default to 0 if not provided
-    rating: cardData.rating, // Assuming rating is passed in cardData
-    review: cardData.last_review,
-    scheduled_days: cardData.scheduled_days,
-    stability: cardData.stability,
-    state: cardData.state,
+    deck_id: card.deck_id,
+    difficulty: newCard.difficulty,
+    due: newCard.due,
+    elapsed_days: newCard.elapsed_days,
+    last_elapsed_days: cardData.last_elapsed_days || 0,
+    rating: cardData.rating,
+    review: review_time,
+    scheduled_days: newCard.scheduled_days,
+    stability: newCard.stability,
+    state: newCard.state,
+    learning_steps: newCard.learning_steps,
   });
 
   await reviewLog.save();
@@ -87,7 +219,7 @@ const getReviewStatsService = async (userId, deckId) => {
   const reviewedToday = await ReviewLog.countDocuments({
     user_id: userId,
     deck_id: deckId,
-    timestamp: {
+    review: {
       $gte: new Date(now.setHours(0, 0, 0, 0)),
       $lte: new Date(now.setHours(23, 59, 59, 999)),
     },

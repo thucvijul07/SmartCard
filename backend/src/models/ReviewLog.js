@@ -12,6 +12,11 @@ const reviewLogSchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
+    deck_id: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Deck",
+      required: true,
+    },
     difficulty: {
       type: Number,
       required: true,

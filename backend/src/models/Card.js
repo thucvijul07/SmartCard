@@ -58,6 +58,10 @@ const cardSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+    learningStep: {
+      type: Number,
+      default: 0,
+    },
   },
   {
     timestamps: {

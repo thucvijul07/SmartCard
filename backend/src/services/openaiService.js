@@ -74,7 +74,7 @@ Each quiz should include:
 ${text}
 
 ---
-
+Make sure **every question includes all 4 fields**.
 Output format (in JSON):
 [
   {
@@ -100,6 +100,7 @@ Output format (in JSON):
     "explanation": "Option B is correct because ..."
   }
 ]
+  Strictly output valid JSON. Do not omit any commas or quotes.
 `;
 
   try {
@@ -123,7 +124,34 @@ Output format (in JSON):
   }
 };
 
+const generateText = async ({ topic, textLength, gradeLevel, language }) => {
+  const prompt = `
+Generate a ${textLength} word text for a ${gradeLevel} grade level student in ${language} about the topic: ${topic}.
+`;
+
+  try {
+    const response = await openai.chat.completions.create({
+      model: "gpt-4.1-nano",
+      messages: [
+        {
+          role: "system",
+          content: "You are a helpful assistant that writes educational texts.",
+        },
+        { role: "user", content: prompt },
+      ],
+    });
+
+    // Trả về plain text, không parse JSON
+    const generatedText = response.choices[0].message.content;
+    return generatedText;
+  } catch (error) {
+    console.error("Error generating text:", error);
+    throw new Error("Failed to generate text. Please try again.");
+  }
+};
+
 export default {
   generateFlashcardsWithOpenAI,
   generateQuizzesWithOpenAI,
+  generateText,
 };
