@@ -8,8 +8,24 @@ import { Sidebar } from "@/components/sidebar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ToastContainer, toast } from "react-toastify";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
-import { BookOpen, Edit, Search, Clock, Star, BarChart } from "lucide-react";
+import {
+  BookOpen,
+  Edit,
+  Search,
+  Star,
+  BarChart,
+  MoreVertical,
+  Trash2,
+} from "lucide-react";
 
 type Deck = {
   id: string;
@@ -51,7 +67,12 @@ const practiceQuizzes = [
 
 export default function LibraryPage() {
   const router = useRouter();
-
+  const [openDialog, setOpenDialog] = useState(false);
+  const [dialogContent, setDialogContent] = useState({
+    title: "",
+    description: "",
+    onConfirm: () => {},
+  });
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [decks, setDecks] = useState<Deck[]>([]);
@@ -64,9 +85,11 @@ export default function LibraryPage() {
           setDecks(response.data.data);
         } else {
           console.error("Failed to fetch decks");
+          toast.error("Failed to fetch decks");
         }
       } catch (error) {
         console.error("Error fetching decks:", error);
+        toast.error("Error fetching decks");
       } finally {
         setLoading(false);
       }
@@ -166,6 +189,36 @@ export default function LibraryPage() {
                               <Edit className="h-4 w-4 mr-2" />
                               Edit
                             </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="flex-1"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setDialogContent({
+                                  title: "Confirm delete",
+                                  description: `Are you sure you want to delete the flashcard set "${set.name}"?`,
+                                  onConfirm: async () => {
+                                    try {
+                                      await axiosClient.delete(
+                                        `/decks/${set.id}`
+                                      );
+                                      setDecks((prev) =>
+                                        prev.filter((d) => d.id !== set.id)
+                                      );
+                                      toast.success("Deleted successfully");
+                                    } catch (err) {
+                                      toast.error("Delete failed");
+                                    } finally {
+                                      setOpenDialog(false);
+                                    }
+                                  },
+                                });
+                                setOpenDialog(true);
+                              }}
+                            >
+                              Delete
+                            </Button>
                           </div>
                         </CardContent>
                       </Card>
@@ -200,9 +253,29 @@ export default function LibraryPage() {
                         <CardContent className="p-6">
                           <div className="flex justify-between items-start mb-2">
                             <h3 className="font-medium">{quiz.title}</h3>
-                            <div className="flex items-center text-xs text-muted-foreground">
-                              <Clock className="h-3 w-3 mr-1" />
-                              {quiz.lastTaken}
+                            <div className="flex items-center gap-2">
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-6 w-6 p-0"
+                                  >
+                                    <MoreVertical className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuItem
+                                    className="text-red-600"
+                                    onClick={() =>
+                                      console.log("Delete quiz:", quiz.id)
+                                    }
+                                  >
+                                    <Trash2 className="h-4 w-4 mr-2" />
+                                    Delete
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
                             </div>
                           </div>
                           <div className="flex justify-between text-sm text-muted-foreground mb-4">
@@ -244,6 +317,25 @@ export default function LibraryPage() {
               </TabsContent>
             </Tabs>
           </div>
+          <ConfirmDialog
+            open={openDialog}
+            onClose={() => setOpenDialog(false)}
+            onConfirm={dialogContent.onConfirm}
+            title={dialogContent.title}
+            description={dialogContent.description}
+          />
+          <ToastContainer
+            position="top-right"
+            autoClose={3000}
+            hideProgressBar={false}
+            newestOnTop={false}
+            closeOnClick
+            rtl={false}
+            pauseOnFocusLoss
+            draggable
+            pauseOnHover
+            theme="light"
+          />
         </main>
       </div>
     </div>

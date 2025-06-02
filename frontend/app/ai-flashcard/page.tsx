@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { toast, ToastContainer } from "react-toastify";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -17,7 +18,6 @@ import { Header } from "@/components/header";
 import { Sidebar } from "@/components/sidebar";
 import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import {
   Select,
   SelectContent,
@@ -25,7 +25,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Sparkles, FileText, Upload, Loader2 } from "lucide-react";
+import { Sparkles, FileText, Cpu, Loader2 } from "lucide-react";
 import axiosClient from "@/lib/axiosClient";
 
 export default function AIFlashcardPage() {
@@ -41,26 +41,45 @@ export default function AIFlashcardPage() {
   const [numCards, setNumCards] = useState([10]);
   const [difficulty, setDifficulty] = useState("medium");
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isGeneratingText, setIsGeneratingText] = useState(false);
+  const [textLength, setTextLength] = useState([500]);
+  const [gradeLevel, setGradeLevel] = useState("middle");
+  const [topic, setTopic] = useState("");
+  const [language, setLanguage] = useState("english");
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFile = e.target.files?.[0] || null;
-    setFile(selectedFile);
-    setInputText(""); // Clear text input when a file is selected
-  };
+  const handleGenerateAIText = async () => {
+    if (!topic) {
+      toast.error("Please enter a topic");
+      return;
+    }
 
-  const handleFileRead = async () => {
-    if (!file) return;
+    setIsGeneratingText(true);
 
-    const reader = new FileReader();
-    reader.onload = async (event) => {
-      const text = event.target?.result as string;
-      setInputText(text);
-    };
-    reader.readAsText(file);
+    try {
+      const response = await axiosClient.post("/openai/generate-text", {
+        topic,
+        textLength: textLength[0],
+        gradeLevel,
+        language,
+      });
+
+      const generatedText = response.data.text;
+      setInputText(generatedText);
+
+      toast.success(
+        "Text generated successfully! Check the Text tab to review and edit before generating flashcards."
+      );
+      setInputMethod("text");
+    } catch (error) {
+      console.error(error);
+      toast.error("An error occurred while generating text. Please try again.");
+    } finally {
+      setIsGeneratingText(false);
+    }
   };
 
   const handleGenerate = async () => {
-    if (!inputText.trim() && !file) return; // Ensure either text or file is provided
+    if (!inputText.trim() && !file) return;
 
     setIsGenerating(true);
 
@@ -85,6 +104,7 @@ export default function AIFlashcardPage() {
   };
 
   const isGenerateDisabled = !inputText.trim() && !file; // Disable generate button if no input
+  const isGenerateTextDisabled = !topic.trim();
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -125,11 +145,11 @@ export default function AIFlashcardPage() {
                           <span>Text</span>
                         </TabsTrigger>
                         <TabsTrigger
-                          value="upload"
+                          value="ai"
                           className="flex items-center gap-2"
                         >
-                          <Upload className="h-4 w-4" />
-                          <span>Upload</span>
+                          <Cpu className="h-4 w-4" />
+                          <span>Generate Text</span>
                         </TabsTrigger>
                       </TabsList>
 
@@ -158,35 +178,99 @@ export default function AIFlashcardPage() {
                         </div>
                       </TabsContent>
 
-                      <TabsContent value="upload">
-                        <div className="flex items-center justify-center h-64 border-2 border-dashed rounded-md border-muted-foreground/25 p-4">
-                          <div className="text-center">
-                            <Upload className="h-10 w-10 text-muted-foreground mx-auto mb-4" />
-                            <h3 className="text-lg font-medium mb-2">
-                              Upload a file
-                            </h3>
-                            <p className="text-sm text-muted-foreground mb-2">
-                              Drag and drop or click to upload TXT files
-                              (PDF/DOCX not supported here)
-                            </p>
-
+                      <TabsContent value="ai">
+                        <div className="space-y-6">
+                          <div className="space-y-2">
+                            <Label htmlFor="topic">Topic</Label>
                             <Input
-                              type="file"
-                              accept=".txt"
-                              onChange={(e) => {
-                                handleFileChange(e);
-                                handleFileRead(); // Gọi ngay khi file được chọn
-                              }}
-                              className="w-full cursor-pointer"
+                              id="topic"
+                              placeholder="e.g., Photosynthesis, World War II, Quantum Physics"
+                              value={topic}
+                              onChange={(e) => setTopic(e.target.value)}
                             />
-
-                            {file && (
-                              <p className="text-sm text-muted-foreground mt-2">
-                                Selected file:{" "}
-                                <span className="font-medium">{file.name}</span>
-                              </p>
-                            )}
                           </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="text-length">
+                              Text Length ({textLength[0]} words)
+                            </Label>
+                            <Slider
+                              id="text-length"
+                              min={100}
+                              max={2000}
+                              step={100}
+                              value={textLength}
+                              onValueChange={setTextLength}
+                            />
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="grade-level">Grade Level</Label>
+                            <Select
+                              value={gradeLevel}
+                              onValueChange={setGradeLevel}
+                            >
+                              <SelectTrigger id="grade-level">
+                                <SelectValue placeholder="Select grade level" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="elementary">
+                                  Elementary School
+                                </SelectItem>
+                                <SelectItem value="middle">
+                                  Middle School
+                                </SelectItem>
+                                <SelectItem value="high">
+                                  High School
+                                </SelectItem>
+                                <SelectItem value="college">College</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="language">Language</Label>
+                            <Select
+                              value={language}
+                              onValueChange={setLanguage}
+                            >
+                              <SelectTrigger id="language">
+                                <SelectValue placeholder="Select language" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="english">English</SelectItem>
+                                <SelectItem value="vietnamese">
+                                  Vietnamese
+                                </SelectItem>
+                                <SelectItem value="spanish">Spanish</SelectItem>
+                                <SelectItem value="french">French</SelectItem>
+                                <SelectItem value="chinese">Chinese</SelectItem>
+                                <SelectItem value="japanese">
+                                  Japanese
+                                </SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+
+                          <Button
+                            className="w-full"
+                            onClick={handleGenerateAIText}
+                            disabled={
+                              isGenerateTextDisabled || isGeneratingText
+                            }
+                          >
+                            {isGeneratingText ? (
+                              <>
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                Generating Text...
+                              </>
+                            ) : (
+                              <>
+                                <Cpu className="mr-2 h-4 w-4" />
+                                Generate Text
+                              </>
+                            )}
+                          </Button>
                         </div>
                       </TabsContent>
                     </Tabs>
@@ -251,6 +335,7 @@ export default function AIFlashcardPage() {
               </div>
             </div>
           </div>
+          <ToastContainer position="top-right" autoClose={3000} />
         </main>
       </div>
     </div>

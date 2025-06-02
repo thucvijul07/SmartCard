@@ -49,63 +49,43 @@ export default function ReviewAIQuizPage() {
   const [showResults, setShowResults] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  // Simulate fetching AI-generated quiz data
   useEffect(() => {
-    // In a real app, this data would come from the previous page via state management or API
     const quizType = searchParams.get("type") || "multiple-choice";
+    const titleParam = searchParams.get("title") || "AI Generated Quiz";
+    const dataParam = searchParams.get("data");
 
-    // Generate mock questions based on quiz type
-    let mockQuestions: QuizQuestion[] = [];
+    let quizQuestions: QuizQuestion[] = [];
 
-    if (quizType === "multiple-choice") {
-      mockQuestions = Array.from({ length: 5 }, (_, i) => ({
-        id: `question-${i + 1}`,
-        question: `Generated multiple choice question ${
-          i + 1
-        } about the topic?`,
-        options: [
-          `Option A for question ${i + 1}`,
-          `Option B for question ${i + 1}`,
-          `Option C for question ${i + 1}`,
-          `Option D for question ${i + 1}`,
-        ],
-        correctAnswer: Math.floor(Math.random() * 4),
-        explanation: `This is the explanation for question ${
-          i + 1
-        }. The correct answer is based on the content you provided.`,
-      }));
-    } else if (quizType === "true-false") {
-      mockQuestions = Array.from({ length: 5 }, (_, i) => ({
-        id: `question-${i + 1}`,
-        question: `Generated true/false statement ${i + 1} about the topic.`,
-        options: ["True", "False"],
-        correctAnswer: Math.floor(Math.random() * 2),
-        explanation: `This is the explanation for statement ${
-          i + 1
-        }. The correct answer is based on the content you provided.`,
-      }));
-    } else if (quizType === "fill-in-blank") {
-      mockQuestions = Array.from({ length: 5 }, (_, i) => ({
-        id: `question-${i + 1}`,
-        question: `Generated fill-in-the-blank question ${
-          i + 1
-        }: __________ is the process of...`,
-        options: [
-          `Answer A for question ${i + 1}`,
-          `Answer B for question ${i + 1}`,
-          `Answer C for question ${i + 1}`,
-        ],
-        correctAnswer: 0, // First option is correct by default
-        explanation: `This is the explanation for question ${
-          i + 1
-        }. The correct answer is based on the content you provided.`,
-      }));
+    if (dataParam) {
+      try {
+        const rawQuestions = JSON.parse(decodeURIComponent(dataParam));
+        // Convert options object to array if needed
+        quizQuestions = rawQuestions.map((q: any, idx: number) => {
+          let options = q.options;
+          if (!Array.isArray(options) && typeof options === "object") {
+            // Convert {A:...,B:...,C:...,D:...} to array
+            options = ["A", "B", "C", "D"].map((key) => options[key] || "");
+          }
+          return {
+            id: q.id || `question-${idx + 1}`,
+            question: q.question,
+            options,
+            correctAnswer:
+              typeof q.correctAnswer === "string"
+                ? ["A", "B", "C", "D"].indexOf(q.correctAnswer)
+                : q.correctAnswer,
+            explanation: q.explanation || "",
+          };
+        });
+      } catch (e) {
+        quizQuestions = [];
+      }
     }
 
-    setTitle(searchParams.get("title") || "AI Generated Quiz");
+    setTitle(titleParam);
     setDescription("Generated from your content using AI");
-    setQuestions(mockQuestions);
-    setSelectedAnswers(new Array(mockQuestions.length).fill(-1));
+    setQuestions(quizQuestions);
+    setSelectedAnswers(new Array(quizQuestions.length).fill(-1));
     setLoading(false);
   }, [searchParams]);
 
@@ -335,31 +315,31 @@ export default function ReviewAIQuizPage() {
 
                       <div className="space-y-4">
                         <Label>Answer Options</Label>
-                        {questions[currentQuestionIndex]?.options.map(
-                          (option, optionIndex) => (
-                            <div
-                              key={optionIndex}
-                              className="flex items-center gap-3"
-                            >
-                              <div className="flex h-6 w-6 items-center justify-center rounded-full border border-muted-foreground text-muted-foreground">
-                                {String.fromCharCode(65 + optionIndex)}
+                        {Array.isArray(
+                          questions[currentQuestionIndex]?.options
+                        ) &&
+                          questions[currentQuestionIndex].options.map(
+                            (option, optionIndex) => (
+                              <div key={optionIndex}>
+                                <div className="flex h-6 w-6 items-center justify-center rounded-full border border-muted-foreground text-muted-foreground">
+                                  {String.fromCharCode(65 + optionIndex)}
+                                </div>
+                                <Input
+                                  placeholder={`Option ${String.fromCharCode(
+                                    65 + optionIndex
+                                  )}`}
+                                  value={option}
+                                  onChange={(e) =>
+                                    updateQuestion(
+                                      currentQuestionIndex,
+                                      `option-${optionIndex}`,
+                                      e.target.value
+                                    )
+                                  }
+                                />
                               </div>
-                              <Input
-                                placeholder={`Option ${String.fromCharCode(
-                                  65 + optionIndex
-                                )}`}
-                                value={option}
-                                onChange={(e) =>
-                                  updateQuestion(
-                                    currentQuestionIndex,
-                                    `option-${optionIndex}`,
-                                    e.target.value
-                                  )
-                                }
-                              />
-                            </div>
-                          )
-                        )}
+                            )
+                          )}
                       </div>
 
                       <div className="space-y-2">

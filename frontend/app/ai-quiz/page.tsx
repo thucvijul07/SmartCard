@@ -25,6 +25,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { BrainCircuit, FileText, Upload, Loader2 } from "lucide-react";
+import axiosClient from "@/lib/axiosClient";
 
 export default function AIQuizPage() {
   const router = useRouter();
@@ -43,18 +44,48 @@ export default function AIQuizPage() {
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  const handleGenerate = () => {
+  const handleGenerate = async () => {
     if (!inputText.trim()) return;
 
     setIsGenerating(true);
-    setTimeout(() => {
-      setIsGenerating(false);
+    try {
+      const response = await axiosClient.post("/quiz/generateQuiz", {
+        text: inputText,
+        numQA: numQuestions[0],
+        difficulty,
+      });
+
+      // Chuyển đổi dữ liệu quiz về đúng format cho trang review
+      const quizzes = (response.data.quizzes || []).map(
+        (q: any, idx: number) => {
+          const optionKeys = ["A", "B", "C", "D"];
+          // Đảm bảo q.options là object, nếu không thì trả về mảng rỗng
+          const optionsArray =
+            q.options && typeof q.options === "object"
+              ? optionKeys.map((key) => q.options[key] || "")
+              : ["", "", "", ""];
+          const correctIndex = optionKeys.indexOf(q.correctAnswer);
+          return {
+            id: `question-${idx + 1}`,
+            question: q.question,
+            options: optionsArray,
+            correctAnswer: correctIndex,
+            explanation: q.explanation,
+          };
+        }
+      );
+
       router.push(
         `/review-ai-quiz?title=${encodeURIComponent(
-          title || "AI Generated Flashcards"
-        )}`
+          title || "AI Generated Quiz"
+        )}&type=${quizType}&data=${encodeURIComponent(JSON.stringify(quizzes))}`
       );
-    }, 2000);
+    } catch (error) {
+      alert("An error occurred while generating quiz.");
+      console.error(error);
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   return (
@@ -233,12 +264,6 @@ export default function AIQuizPage() {
                             <SelectContent>
                               <SelectItem value="multiple-choice">
                                 Multiple Choice
-                              </SelectItem>
-                              <SelectItem value="true-false">
-                                True/False
-                              </SelectItem>
-                              <SelectItem value="fill-in-blank">
-                                Fill in the Blank
                               </SelectItem>
                             </SelectContent>
                           </Select>

@@ -110,7 +110,7 @@ export default function TakeQuizPage({ params }: { params: { id: string } }) {
 
     setQuiz(mockQuiz);
     setSelectedAnswers(new Array(mockQuiz.questions.length).fill(-1));
-    setTimeRemaining(mockQuiz.questions.length * 1); // 1 minute per question
+    setTimeRemaining(mockQuiz.questions.length * 1);
     setLoading(false);
   }, [params.id]);
 
@@ -126,7 +126,7 @@ export default function TakeQuizPage({ params }: { params: { id: string } }) {
         }
         return prev - 1;
       });
-    }, 1000);
+    }, 5000);
 
     return () => clearInterval(timer);
   }, [loading, isSubmitted, timeRemaining]);
