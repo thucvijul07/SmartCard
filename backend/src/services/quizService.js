@@ -1,40 +1,47 @@
 import Quiz from "../models/Quiz.js";
 
 const createQuiz = async ({
-  deck_id,
   user_id,
+  quiz_set_id,
   question,
   options,
   correct_answer,
+  explanation = "",
 }) => {
-  if (!deck_id || !user_id || !question || !options || !correct_answer) {
+  if (!user_id || !quiz_set_id || !question || !options || !correct_answer) {
     throw new Error("Missing required fields");
   }
   const quiz = new Quiz({
-    deck_id,
     user_id,
+    quiz_set_id,
     question,
     options,
     correct_answer,
+    explanation,
   });
   await quiz.save();
   return quiz;
 };
 
-const updateQuiz = async (quizId, updateData) => {
-  const quiz = await Quiz.findById(quizId);
-  if (!quiz || quiz.deleted_at) throw new Error("Quiz not found");
-  Object.assign(quiz, updateData);
-  await quiz.save();
-  return quiz;
-};
-
 const deleteQuiz = async (quizId) => {
-  const quiz = await Quiz.findById(quizId);
-  if (!quiz || quiz.deleted_at) throw new Error("Quiz not found");
+  const quiz = await Quiz.findOne({ _id: quizId, deleted_at: null });
+  if (!quiz) throw new Error("Quiz not found");
   quiz.deleted_at = new Date();
   await quiz.save();
   return quiz;
 };
 
-export default { createQuiz, updateQuiz, deleteQuiz };
+const getQuizById = async (quizId) => {
+  return Quiz.findOne({ _id: quizId, deleted_at: null });
+};
+
+const getQuizzesByQuizSetId = async (quizSetId) => {
+  return Quiz.find({ quiz_set_id: quizSetId, deleted_at: null });
+};
+
+export default {
+  createQuiz,
+  deleteQuiz,
+  getQuizById,
+  getQuizzesByQuizSetId,
+};

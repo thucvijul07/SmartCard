@@ -68,7 +68,7 @@ Each quiz should include:
 - four "options" (A, B, C, D)
 - the correct option letter as "correctAnswer"
 - an "explanation" that briefly explains why the correct answer is right
-
+Please return ONLY a valid JSON array of quiz objects, no explanation, no markdown, no extra text.
 ---
 
 ${text}

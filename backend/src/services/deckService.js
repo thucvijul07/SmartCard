@@ -3,12 +3,15 @@ import Card from "../models/Card.js";
 import ReviewLog from "../models/ReviewLog.js";
 
 export const getAllDecksService = async (userId) => {
-  const decks = await Deck.find({ user_id: userId }).sort({ created_at: -1 });
+  const decks = await Deck.find({ user_id: userId, deleted_at: null }).sort({
+    created_at: -1,
+  });
   const deckWithCardCounts = await Promise.all(
     decks.map(async (deck) => {
       const cardCount = await Card.countDocuments({
         deck_id: deck._id,
         user_id: userId,
+        deleted_at: null,
       });
 
       return {
@@ -26,10 +29,18 @@ export const getAllDecksService = async (userId) => {
 
 // Lấy chi tiết 1 deck theo id và bao gồm cả các cards của nó
 export const getDeckByIdService = async (userId, deckId) => {
-  const deck = await Deck.findOne({ _id: deckId, user_id: userId });
+  const deck = await Deck.findOne({
+    _id: deckId,
+    user_id: userId,
+    deleted_at: null,
+  });
   if (!deck) return null;
 
-  const cards = await Card.find({ deck_id: deckId, user_id: userId });
+  const cards = await Card.find({
+    deck_id: deckId,
+    user_id: userId,
+    deleted_at: null,
+  });
 
   return {
     deck,
@@ -75,7 +86,7 @@ export const updateDeckWithCardsService = async (
 ) => {
   // Cập nhật deck
   const updatedDeck = await Deck.findOneAndUpdate(
-    { _id: deckId, user_id: userId },
+    { _id: deckId, user_id: userId, deleted_at: null },
     { name, description },
     { new: true }
   );
@@ -90,7 +101,7 @@ export const updateDeckWithCardsService = async (
     if (card._id) {
       // Cập nhật card cũ
       const updatedCard = await Card.findOneAndUpdate(
-        { _id: card._id, user_id: userId, deck_id: deckId },
+        { _id: card._id, user_id: userId, deck_id: deckId, deleted_at: null },
         {
           question: card.question,
           answer: card.answer,
@@ -121,13 +132,18 @@ export const updateDeckWithCardsService = async (
 
 // Xóa deck và tất cả các cards liên quan
 export const deleteDeckService = async (userId, deckId) => {
-  const deck = await Deck.findOneAndDelete({ _id: deckId, user_id: userId });
+  // Xóa mềm deck
+  const deck = await Deck.findOneAndUpdate(
+    { _id: deckId, user_id: userId, deleted_at: null },
+    { deleted_at: new Date() },
+    { new: true }
+  );
   if (!deck) return null;
-
-  // Xóa tất cả các card thuộc deck này
-  await Card.deleteMany({ deck_id: deckId, user_id: userId });
-  // Xóa tất cả reviewlog thuộc deck này
-  await ReviewLog.deleteMany({ deck_id: deckId, user_id: userId });
-
+  // Xóa mềm tất cả các card thuộc deck này
+  await Card.updateMany(
+    { deck_id: deckId, user_id: userId, deleted_at: null },
+    { deleted_at: new Date() }
+  );
+  // Xóa mềm tất cả reviewlog thuộc deck này nếu cần (nếu có trường deleted_at)
   return true;
 };

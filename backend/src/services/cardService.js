@@ -15,7 +15,7 @@ const fsrsInstance = fsrs(
 
 const updateCard = async (userId, id, data) => {
   const updatedCard = await Card.findOneAndUpdate(
-    { _id: id, user_id: userId },
+    { _id: id, user_id: userId, deleted_at: null },
     {
       question: data.question,
       answer: data.answer,
@@ -232,9 +232,18 @@ const getReviewStatsService = async (userId, deckId) => {
   };
 };
 
+// Xóa mềm card
+const deleteCard = async (userId, cardId) => {
+  await Card.findOneAndUpdate(
+    { _id: cardId, user_id: userId, deleted_at: null },
+    { deleted_at: new Date() }
+  );
+};
+
 export {
   updateCard,
   getCardsToReviewService,
   updateReviewResultService,
   getReviewStatsService,
+  deleteCard,
 };

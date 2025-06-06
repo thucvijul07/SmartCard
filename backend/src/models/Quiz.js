@@ -2,14 +2,14 @@ import mongoose from "mongoose";
 
 const quizSchema = new mongoose.Schema(
   {
-    deck_id: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Deck",
-      required: true,
-    },
     user_id: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
+      required: true,
+    },
+    quiz_set_id: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "QuizSet",
       required: true,
     },
     question: {
@@ -25,6 +25,10 @@ const quizSchema = new mongoose.Schema(
     correct_answer: {
       type: String,
       required: true,
+    },
+    explanation: {
+      type: String,
+      default: "",
     },
     deleted_at: {
       type: Date,
