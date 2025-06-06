@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 import { Header } from "@/components/header";
 import { Sidebar } from "@/components/sidebar";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,7 @@ import { Progress } from "@/components/ui/progress";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { ArrowLeft, ArrowRight, CheckCircle2 } from "lucide-react";
+import axiosClient from "@/lib/axiosClient";
 
 type QuizQuestion = {
   id: string;
@@ -26,7 +27,8 @@ type Quiz = {
   questions: QuizQuestion[];
 };
 
-export default function TakeQuizPage({ params }: { params: { id: string } }) {
+export default function TakeQuizPage() {
+  const { id } = useParams();
   const router = useRouter();
   const [quiz, setQuiz] = useState<Quiz | null>(null);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
@@ -37,82 +39,28 @@ export default function TakeQuizPage({ params }: { params: { id: string } }) {
   const [progress, setProgress] = useState(0);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  // Simulate fetching quiz data
+  // Fetch quiz data from API
   useEffect(() => {
-    // In a real app, fetch from API based on params.id
-    const mockQuiz: Quiz = {
-      id: params.id,
-      title: "Biology Midterm Quiz",
-      description: "Test your knowledge of basic biology concepts",
-      questions: [
-        {
-          id: "q1",
-          question: "What is the powerhouse of the cell?",
-          options: [
-            "Nucleus",
-            "Mitochondria",
-            "Endoplasmic Reticulum",
-            "Golgi Apparatus",
-          ],
-          correctAnswer: 1,
-          explanation:
-            "Mitochondria are often referred to as the powerhouse of the cell because they generate most of the cell's supply of ATP, used as a source of chemical energy.",
-        },
-        {
-          id: "q2",
-          question: "Which of the following is NOT a function of the liver?",
-          options: [
-            "Detoxification",
-            "Protein synthesis",
-            "Bile production",
-            "Oxygen transport",
-          ],
-          correctAnswer: 3,
-          explanation:
-            "Oxygen transport is primarily a function of red blood cells, not the liver.",
-        },
-        {
-          id: "q3",
-          question: "What is the process by which plants make their own food?",
-          options: [
-            "Respiration",
-            "Photosynthesis",
-            "Fermentation",
-            "Digestion",
-          ],
-          correctAnswer: 1,
-          explanation:
-            "Photosynthesis is the process by which green plants and some other organisms use sunlight to synthesize foods with the help of chlorophyll.",
-        },
-        {
-          id: "q4",
-          question: "Which of the following is not a type of blood cell?",
-          options: [
-            "Red blood cells",
-            "White blood cells",
-            "Platelets",
-            "Nephrons",
-          ],
-          correctAnswer: 3,
-          explanation:
-            "Nephrons are the functional units of the kidney, not a type of blood cell.",
-        },
-        {
-          id: "q5",
-          question: "What is the largest organ in the human body?",
-          options: ["Heart", "Liver", "Skin", "Brain"],
-          correctAnswer: 2,
-          explanation:
-            "The skin is the largest organ in the human body, with a total area of about 20 square feet in adults.",
-        },
-      ],
-    };
-
-    setQuiz(mockQuiz);
-    setSelectedAnswers(new Array(mockQuiz.questions.length).fill(-1));
-    setTimeRemaining(mockQuiz.questions.length * 1);
-    setLoading(false);
-  }, [params.id]);
+    if (!id) return;
+    setLoading(true);
+    axiosClient
+      .get(`/quiz/set/${id}`)
+      .then((res) => {
+        if (res.data && res.data.isSuccess && res.data.data) {
+          setQuiz(res.data.data);
+          setSelectedAnswers(
+            new Array(res.data.data.questions.length).fill(-1)
+          );
+          setTimeRemaining(res.data.data.questions.length * 60); // 60s mỗi câu
+        } else {
+          setQuiz(null);
+        }
+      })
+      .catch(() => {
+        setQuiz(null);
+      })
+      .finally(() => setLoading(false));
+  }, [id]);
 
   // Timer countdown
   useEffect(() => {
@@ -165,8 +113,23 @@ export default function TakeQuizPage({ params }: { params: { id: string } }) {
     }
   };
 
-  const handleSubmitQuiz = () => {
+  const handleSubmitQuiz = async () => {
     setIsSubmitted(true);
+    if (quiz) {
+      try {
+        const answers = quiz.questions.map((q, idx) => ({
+          quiz_id: q.id,
+          selected_answer:
+            selectedAnswers[idx] >= 0 ? q.options[selectedAnswers[idx]] : "",
+        }));
+        await axiosClient.post("/quiz/submit", {
+          quiz_set_id: quiz.id,
+          answers,
+        });
+      } catch (err) {
+        console.error("Error submitting quiz:", err);
+      }
+    }
   };
 
   const calculateScore = () => {
@@ -413,71 +376,6 @@ export default function TakeQuizPage({ params }: { params: { id: string } }) {
                     </div>
                   </CardContent>
                 </Card>
-
-                <div className="space-y-6">
-                  <h3 className="text-xl font-bold">Question Summary</h3>
-                  {quiz.questions.map((question, index) => (
-                    <Card
-                      key={question.id}
-                      className={`border-l-4 ${
-                        selectedAnswers[index] === question.correctAnswer
-                          ? "border-l-green-500"
-                          : "border-l-destructive"
-                      }`}
-                    >
-                      <CardContent className="p-6">
-                        <div className="flex items-start gap-4">
-                          <div
-                            className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${
-                              selectedAnswers[index] === question.correctAnswer
-                                ? "bg-green-500 text-white"
-                                : "bg-destructive text-white"
-                            }`}
-                          >
-                            {index + 1}
-                          </div>
-                          <div className="space-y-4 w-full">
-                            <h3 className="font-medium">{question.question}</h3>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                              <div
-                                className={`p-3 rounded-md border ${
-                                  selectedAnswers[index] ===
-                                  question.correctAnswer
-                                    ? "border-green-500 bg-green-50 dark:bg-green-900/20"
-                                    : "border-destructive bg-destructive/10"
-                                }`}
-                              >
-                                <p className="text-sm font-medium mb-1">
-                                  Your answer:
-                                </p>
-                                <p>
-                                  {selectedAnswers[index] >= 0
-                                    ? question.options[selectedAnswers[index]]
-                                    : "No answer"}
-                                </p>
-                              </div>
-                              {selectedAnswers[index] !==
-                                question.correctAnswer && (
-                                <div className="p-3 rounded-md border border-green-500 bg-green-50 dark:bg-green-900/20">
-                                  <p className="text-sm font-medium mb-1">
-                                    Correct answer:
-                                  </p>
-                                  <p>
-                                    {question.options[question.correctAnswer]}
-                                  </p>
-                                </div>
-                              )}
-                            </div>
-                            <div className="text-sm text-muted-foreground bg-muted p-3 rounded-md">
-                              <strong>Explanation:</strong>{" "}
-                              {question.explanation}
-                            </div>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
               </div>
             )}
           </div>

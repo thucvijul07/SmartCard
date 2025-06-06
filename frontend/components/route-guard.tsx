@@ -4,7 +4,13 @@ import { useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useAuth } from "@/components/auth-provider";
 
-const publicRoutes = ["/", "/login", "/register", "/forgot-password"];
+const publicRoutes = [
+  "/",
+  "/login",
+  "/oauth-success",
+  "/register",
+  "/forgot-password",
+];
 
 export function RouteGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();

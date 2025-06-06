@@ -1,12 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 import { Header } from "@/components/header";
 import { Sidebar } from "@/components/sidebar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ArrowLeft, CheckCircle2, XCircle } from "lucide-react";
+import axiosClient from "@/lib/axiosClient";
 
 type QuizQuestion = {
   id: string;
@@ -27,94 +28,29 @@ type QuizResult = {
   completedAt: string;
 };
 
-export default function ReviewQuizPage({ params }: { params: { id: string } }) {
+export default function ReviewQuizPage() {
+  const { id } = useParams();
   const router = useRouter();
   const [quizResult, setQuizResult] = useState<QuizResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  // Simulate fetching quiz result data
+  // Fetch quiz result from API
   useEffect(() => {
-    // In a real app, fetch from API based on params.id
-    const mockQuizResult: QuizResult = {
-      id: params.id,
-      title: "Biology Midterm Quiz",
-      description: "Test your knowledge of basic biology concepts",
-      score: 3,
-      totalQuestions: 5,
-      completedAt: new Date().toISOString(),
-      questions: [
-        {
-          id: "q1",
-          question: "What is the powerhouse of the cell?",
-          options: [
-            "Nucleus",
-            "Mitochondria",
-            "Endoplasmic Reticulum",
-            "Golgi Apparatus",
-          ],
-          correctAnswer: 1,
-          userAnswer: 1,
-          explanation:
-            "Mitochondria are often referred to as the powerhouse of the cell because they generate most of the cell's supply of ATP, used as a source of chemical energy.",
-        },
-        {
-          id: "q2",
-          question: "Which of the following is NOT a function of the liver?",
-          options: [
-            "Detoxification",
-            "Protein synthesis",
-            "Bile production",
-            "Oxygen transport",
-          ],
-          correctAnswer: 3,
-          userAnswer: 2,
-          explanation:
-            "Oxygen transport is primarily a function of red blood cells, not the liver.",
-        },
-        {
-          id: "q3",
-          question: "What is the process by which plants make their own food?",
-          options: [
-            "Respiration",
-            "Photosynthesis",
-            "Fermentation",
-            "Digestion",
-          ],
-          correctAnswer: 1,
-          userAnswer: 1,
-          explanation:
-            "Photosynthesis is the process by which green plants and some other organisms use sunlight to synthesize foods with the help of chlorophyll.",
-        },
-        {
-          id: "q4",
-          question: "Which of the following is not a type of blood cell?",
-          options: [
-            "Red blood cells",
-            "White blood cells",
-            "Platelets",
-            "Nephrons",
-          ],
-          correctAnswer: 3,
-          userAnswer: 3,
-          explanation:
-            "Nephrons are the functional units of the kidney, not a type of blood cell.",
-        },
-        {
-          id: "q5",
-          question: "What is the largest organ in the human body?",
-          options: ["Heart", "Liver", "Skin", "Brain"],
-          correctAnswer: 2,
-          userAnswer: 0,
-          explanation:
-            "The skin is the largest organ in the human body, with a total area of about 20 square feet in adults.",
-        },
-      ],
-    };
-
-    setQuizResult(mockQuizResult);
-    setLoading(false);
-  }, [params.id]);
+    if (!id) return;
+    setLoading(true);
+    axiosClient
+      .get(`/quiz/result/${id}`)
+      .then((res) => {
+        if (res.data && res.data.isSuccess) {
+          setQuizResult(res.data);
+        } else {
+          setQuizResult(null);
+        }
+      })
+      .catch(() => setQuizResult(null))
+      .finally(() => setLoading(false));
+  }, [id]);
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);

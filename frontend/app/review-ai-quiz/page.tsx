@@ -27,6 +27,7 @@ import {
   ArrowRight,
   CheckCircle2,
 } from "lucide-react";
+import axiosClient from "@/lib/axiosClient";
 
 type QuizQuestion = {
   id: string;
@@ -142,10 +143,58 @@ export default function ReviewAIQuizPage() {
     setQuestions(newQuestions);
   };
 
-  const handleSave = () => {
-    // Save logic would go here
-    alert("Quiz saved to your library!");
-    router.push("/library");
+  const handleSave = async () => {
+    // Validate dữ liệu trước khi gửi
+    if (!title.trim()) {
+      alert("Title is required");
+      return;
+    }
+    if (questions.length === 0) {
+      alert("At least one question is required");
+      return;
+    }
+    for (let i = 0; i < questions.length; i++) {
+      const q = questions[i];
+      if (!q.question.trim()) {
+        alert(`Question ${i + 1} is required`);
+        return;
+      }
+      if (!Array.isArray(q.options) || q.options.length < 2) {
+        alert(`Question ${i + 1} must have at least 2 options`);
+        return;
+      }
+      for (let j = 0; j < q.options.length; j++) {
+        if (!q.options[j] || !q.options[j].trim()) {
+          alert(`Option ${j + 1} of question ${i + 1} is required`);
+          return;
+        }
+      }
+      if (
+        typeof q.correctAnswer !== "number" ||
+        q.correctAnswer < 0 ||
+        q.correctAnswer >= q.options.length
+      ) {
+        alert(`Correct answer for question ${i + 1} is invalid`);
+        return;
+      }
+    }
+    try {
+      const questionsPayload = questions.map((q) => ({
+        question: q.question,
+        options: q.options,
+        correctAnswer: q.correctAnswer,
+        explanation: q.explanation,
+      }));
+      await axiosClient.post("/quiz", {
+        title,
+        description,
+        questions: questionsPayload,
+      });
+      alert("Quiz saved to your library!");
+      router.push("/library");
+    } catch (error) {
+      alert("Error saving quiz");
+    }
   };
 
   const handleSelectAnswer = (questionIndex: number, optionIndex: number) => {

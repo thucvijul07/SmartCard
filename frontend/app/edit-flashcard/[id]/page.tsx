@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 import { Header } from "@/components/header";
 import { Sidebar } from "@/components/sidebar";
 import { Button } from "@/components/ui/button";
@@ -17,11 +17,8 @@ type FlashCard = {
   definition: string;
 };
 
-export default function EditFlashcardPage({
-  params,
-}: {
-  params: { id: string };
-}) {
+export default function EditFlashcardPage() {
+  const { id } = useParams();
   const router = useRouter();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -32,7 +29,7 @@ export default function EditFlashcardPage({
 
   useEffect(() => {
     const mockFlashcardSet = {
-      id: params.id,
+      id: id,
       title: "Biology 101",
       description: "Basic biology concepts and definitions",
       cards: [
@@ -61,7 +58,7 @@ export default function EditFlashcardPage({
     setDescription(mockFlashcardSet.description);
     setCards(mockFlashcardSet.cards);
     setLoading(false);
-  }, [params.id]);
+  }, [id]);
 
   const addCard = () => {
     const newCard = {

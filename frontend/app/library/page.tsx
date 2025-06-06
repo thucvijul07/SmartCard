@@ -10,22 +10,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ToastContainer, toast } from "react-toastify";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
-import {
-  DropdownMenu,
-  DropdownMenuTrigger,
-  DropdownMenuContent,
-  DropdownMenuItem,
-} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
-import {
-  BookOpen,
-  Edit,
-  Search,
-  Star,
-  BarChart,
-  MoreVertical,
-  Trash2,
-} from "lucide-react";
+import { BookOpen, Edit, Search, Star, BarChart } from "lucide-react";
 
 type Deck = {
   id: string;
@@ -33,38 +19,7 @@ type Deck = {
   description: string;
   parent_deck_id: string | null;
   card_count: number;
-}; // Mock data for practice quizzes
-const practiceQuizzes = [
-  {
-    id: "1",
-    title: "Biology Midterm",
-    questions: 20,
-    lastTaken: "3 days ago",
-    score: "85%",
-  },
-  {
-    id: "2",
-    title: "Chemistry Quiz",
-    questions: 15,
-    lastTaken: "1 week ago",
-    score: "92%",
-  },
-  {
-    id: "3",
-    title: "Spanish Test",
-    questions: 25,
-    lastTaken: "2 days ago",
-    score: "78%",
-  },
-  {
-    id: "4",
-    title: "History Review",
-    questions: 30,
-    lastTaken: "4 days ago",
-    score: "88%",
-  },
-];
-
+};
 export default function LibraryPage() {
   const router = useRouter();
   const [openDialog, setOpenDialog] = useState(false);
@@ -77,6 +32,10 @@ export default function LibraryPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [decks, setDecks] = useState<Deck[]>([]);
   const [loading, setLoading] = useState(true);
+  // Quiz sets state
+  const [quizSets, setQuizSets] = useState<any[]>([]);
+  const [quizLoading, setQuizLoading] = useState(true);
+
   useEffect(() => {
     const fetchDecks = async () => {
       try {
@@ -94,17 +53,36 @@ export default function LibraryPage() {
         setLoading(false);
       }
     };
-
     fetchDecks();
   }, []);
-  if (loading) {
+
+  useEffect(() => {
+    const fetchQuizSets = async () => {
+      try {
+        const response = await axiosClient.get("/quiz/");
+        if (response.data.isSuccess) {
+          setQuizSets(response.data.data);
+        } else {
+          toast.error("Failed to fetch quizzes");
+        }
+      } catch (error) {
+        toast.error("Error fetching quizzes");
+      } finally {
+        setQuizLoading(false);
+      }
+    };
+    fetchQuizSets();
+  }, []);
+
+  if (loading || quizLoading) {
     return <div>Loading...</div>;
   }
+
   const filteredFlashcardSets = decks.filter((set) =>
     set.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const filteredPracticeQuizzes = practiceQuizzes.filter((quiz) =>
+  const filteredPracticeQuizzes = quizSets.filter((quiz) =>
     quiz.title.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
@@ -247,43 +225,27 @@ export default function LibraryPage() {
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {filteredPracticeQuizzes.map((quiz) => (
                       <Card
-                        key={quiz.id}
+                        key={quiz._id}
                         className="hover:shadow-md transition-shadow"
                       >
                         <CardContent className="p-6">
                           <div className="flex justify-between items-start mb-2">
                             <h3 className="font-medium">{quiz.title}</h3>
-                            <div className="flex items-center gap-2">
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-6 w-6 p-0"
-                                  >
-                                    <MoreVertical className="h-4 w-4" />
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                  <DropdownMenuItem
-                                    className="text-red-600"
-                                    onClick={() =>
-                                      console.log("Delete quiz:", quiz.id)
-                                    }
-                                  >
-                                    <Trash2 className="h-4 w-4 mr-2" />
-                                    Delete
-                                  </DropdownMenuItem>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                            </div>
                           </div>
                           <div className="flex justify-between text-sm text-muted-foreground mb-4">
-                            <span>{quiz.questions} questions</span>
-                            <div className="flex items-center">
-                              <Star className="h-3 w-3 mr-1 text-yellow-500" />
-                              <span>{quiz.score}</span>
+                            <span>{quiz.totalQuestions} questions</span>
+                            <div className="flex flex-col items-end">
+                              <span className="flex items-center">
+                                <Star className="h-3 w-3 mr-1 text-yellow-500" />{" "}
+                                {quiz.correct}/{quiz.attempts} correct
+                              </span>
                             </div>
+                          </div>
+                          <div className="flex text-xs text-muted-foreground mb-2">
+                            <span>
+                              Created:{" "}
+                              {new Date(quiz.created_at).toLocaleDateString()}
+                            </span>
                           </div>
                           <div className="flex gap-2">
                             <Button
@@ -291,7 +253,7 @@ export default function LibraryPage() {
                               size="sm"
                               className="flex-1"
                               onClick={() =>
-                                router.push(`/take-quiz/${quiz.id}`)
+                                router.push(`/take-quiz/${quiz._id}`)
                               }
                             >
                               <BookOpen className="h-4 w-4 mr-2" />
@@ -302,11 +264,18 @@ export default function LibraryPage() {
                               size="sm"
                               className="flex-1"
                               onClick={() =>
-                                router.push(`/edit-quiz/${quiz.id}`)
+                                router.push(`/edit-quiz/${quiz._id}`)
                               }
                             >
                               <Edit className="h-4 w-4 mr-2" />
                               Edit
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="flex-1"
+                            >
+                              Delete
                             </Button>
                           </div>
                         </CardContent>

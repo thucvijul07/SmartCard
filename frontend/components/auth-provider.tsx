@@ -7,6 +7,9 @@ type User = {
   id: string;
   username: string;
   email: string;
+  avatar_url?: string;
+  birthday?: string;
+  role?: number;
 };
 
 type AuthContextType = {
@@ -21,6 +24,7 @@ type AuthContextType = {
     password: string,
     birthday: Date
   ) => Promise<void>;
+  syncUserFromToken: (token: string) => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -32,10 +36,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const token = localStorage.getItem("token");
-
     if (token) {
       axiosClient.defaults.headers.common["Authorization"] = `Bearer ${token}`;
-
       axiosClient
         .get("/user/info")
         .then((response) => {
@@ -44,6 +46,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             id: apiUser._id,
             username: apiUser.username,
             email: apiUser.email,
+            avatar_url: apiUser.avatar_url,
+            birthday: apiUser.birthday,
+            role: apiUser.role,
           };
           setUser(mappedUser);
           setIsAuthenticated(true);
@@ -67,20 +72,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         email,
         password,
       });
-
       const { token } = response.data.data;
-
       localStorage.setItem("token", token);
       axiosClient.defaults.headers.common["Authorization"] = `Bearer ${token}`;
-
       const userInfoResponse = await axiosClient.get("/user/info");
       const apiUser = userInfoResponse.data.data;
       const mappedUser: User = {
         id: apiUser._id,
         username: apiUser.username,
         email: apiUser.email,
+        avatar_url: apiUser.avatar_url,
+        birthday: apiUser.birthday,
+        role: apiUser.role,
       };
-
       setUser(mappedUser);
       setIsAuthenticated(true);
       localStorage.setItem("user", JSON.stringify(mappedUser));
@@ -128,9 +132,43 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  // Thêm hàm đồng bộ user từ token (dùng cho OAuth)
+  const syncUserFromToken = async (token: string) => {
+    localStorage.setItem("token", token);
+    axiosClient.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+    try {
+      const userInfoResponse = await axiosClient.get("/user/info");
+      const apiUser = userInfoResponse.data.data;
+      const mappedUser: User = {
+        id: apiUser._id,
+        username: apiUser.username,
+        email: apiUser.email,
+        avatar_url: apiUser.avatar_url,
+        birthday: apiUser.birthday,
+        role: apiUser.role,
+      };
+      setUser(mappedUser);
+      setIsAuthenticated(true);
+      localStorage.setItem("user", JSON.stringify(mappedUser));
+    } catch (error) {
+      localStorage.removeItem("token");
+      setUser(null);
+      setIsAuthenticated(false);
+      throw error;
+    }
+  };
+
   return (
     <AuthContext.Provider
-      value={{ user, isAuthenticated, loading, login, logout, register }}
+      value={{
+        user,
+        isAuthenticated,
+        loading,
+        login,
+        logout,
+        register,
+        syncUserFromToken,
+      }}
     >
       {children}
     </AuthContext.Provider>

@@ -173,25 +173,6 @@ export default function RegisterPage() {
                 </svg>
                 Google
               </Button>
-              <Button
-                variant="outline"
-                className="w-full"
-                onClick={() => alert("Microsoft login not implemented")}
-              >
-                <svg
-                  width="21"
-                  height="21"
-                  viewBox="0 0 21 21"
-                  className="h-5 w-5 mr-2"
-                  aria-hidden="true"
-                >
-                  <path d="M10 0H0V10H10V0Z" fill="#F25022" />
-                  <path d="M21 0H11V10H21V0Z" fill="#7FBA00" />
-                  <path d="M10 11H0V21H10V11Z" fill="#00A4EF" />
-                  <path d="M21 11H11V21H21V11Z" fill="#FFB900" />
-                </svg>
-                Microsoft
-              </Button>
             </div>
           </CardContent>
           <CardFooter className="flex flex-col space-y-4">

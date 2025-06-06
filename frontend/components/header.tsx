@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Search, Plus, ChevronDown } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 export function Header({ toggleSidebar }: { toggleSidebar?: () => void }) {
   const { isAuthenticated, user, logout } = useAuth();
@@ -102,9 +102,16 @@ export function Header({ toggleSidebar }: { toggleSidebar?: () => void }) {
                     className="relative h-8 w-8 rounded-full"
                   >
                     <Avatar className="h-8 w-8">
-                      <AvatarFallback className="bg-primary text-primary-foreground">
-                        {user?.username.charAt(0).toUpperCase()}
-                      </AvatarFallback>
+                      {user?.avatar_url ? (
+                        <AvatarImage
+                          src={user.avatar_url}
+                          alt={user?.username}
+                        />
+                      ) : (
+                        <AvatarFallback className="bg-primary text-primary-foreground">
+                          {user?.username?.charAt(0).toUpperCase()}
+                        </AvatarFallback>
+                      )}
                     </Avatar>
                   </Button>
                 </DropdownMenuTrigger>
@@ -112,9 +119,7 @@ export function Header({ toggleSidebar }: { toggleSidebar?: () => void }) {
                   <DropdownMenuItem onClick={() => router.push("/profile")}>
                     Profile
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => router.push("/settings")}>
-                    Settings
-                  </DropdownMenuItem>
+
                   <DropdownMenuItem onClick={logout}>Logout</DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>

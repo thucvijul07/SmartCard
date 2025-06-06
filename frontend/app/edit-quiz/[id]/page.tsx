@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 import { Header } from "@/components/header";
 import { Sidebar } from "@/components/sidebar";
 import { Button } from "@/components/ui/button";
@@ -26,7 +26,8 @@ type QuizQuestion = {
   explanation: string;
 };
 
-export default function EditQuizPage({ params }: { params: { id: string } }) {
+export default function EditQuizPage() {
+  const { id } = useParams();
   const router = useRouter();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -39,7 +40,7 @@ export default function EditQuizPage({ params }: { params: { id: string } }) {
   useEffect(() => {
     // In a real app, fetch from API based on params.id
     const mockQuiz = {
-      id: params.id,
+      id: id,
       title: "Biology Midterm",
       description: "Review quiz for biology midterm exam",
       questions: [
@@ -89,7 +90,7 @@ export default function EditQuizPage({ params }: { params: { id: string } }) {
     setDescription(mockQuiz.description);
     setQuestions(mockQuiz.questions);
     setLoading(false);
-  }, [params.id]);
+  }, [id]);
 
   const addQuestion = () => {
     const newQuestion = {
