@@ -51,17 +51,20 @@ const createDeckWithCards = async (req, res) => {
 
     const userId = req.user._id;
 
-    const { deck, savedCards } = await deckService.createDeckWithCardsService(
-      userId,
-      name,
-      description,
-      cards
-    );
+    const { deck, savedCards, quizSet, quizzes } =
+      await deckService.createDeckWithCardsService(
+        userId,
+        name,
+        description,
+        cards
+      );
 
     res.status(201).json({
-      message: "Tạo bộ thẻ thành công",
+      message: "Tạo bộ thẻ và quiz thành công",
       deck,
       cards: savedCards,
+      quizSet,
+      quizzes,
     });
   } catch (err) {
     console.error("Error creating deck and cards:", err);

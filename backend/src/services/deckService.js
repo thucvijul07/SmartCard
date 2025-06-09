@@ -1,6 +1,9 @@
 import Deck from "../models/Deck.js";
 import Card from "../models/Card.js";
 import ReviewLog from "../models/ReviewLog.js";
+import QuizSet from "../models/QuizSet.js";
+import Quiz from "../models/Quiz.js";
+import openaiService from "./openaiService.js";
 
 export const getAllDecksService = async (userId) => {
   const decks = await Deck.find({ user_id: userId, deleted_at: null }).sort({
@@ -27,7 +30,6 @@ export const getAllDecksService = async (userId) => {
   return deckWithCardCounts;
 };
 
-// Lấy chi tiết 1 deck theo id và bao gồm cả các cards của nó
 export const getDeckByIdService = async (userId, deckId) => {
   const deck = await Deck.findOne({
     _id: deckId,
@@ -54,6 +56,7 @@ export const createDeckWithCardsService = async (
   description,
   cards
 ) => {
+  // 1. Tạo deck
   const newDeck = new Deck({
     user_id: userId,
     name,
@@ -61,9 +64,9 @@ export const createDeckWithCardsService = async (
   });
   const savedDeck = await newDeck.save();
 
+  // 2. Tạo card
   const now = new Date();
   now.setHours(23, 59, 0, 0);
-
   const cardDocs = cards.map((card) => ({
     deck_id: savedDeck._id,
     user_id: userId,
@@ -71,10 +74,46 @@ export const createDeckWithCardsService = async (
     answer: card.answer,
     due: now,
   }));
-
   const savedCards = await Card.insertMany(cardDocs);
 
-  return { deck: savedDeck, savedCards };
+  // 3. Tạo QuizSet liên kết deck
+  const quizSet = new QuizSet({
+    title: name,
+    description: description || "",
+    user_id: userId,
+  });
+  const savedQuizSet = await quizSet.save();
+
+  // 4. Gọi sinh quiz từ flashcard (không chờ, chạy async, không ảnh hưởng phản hồi FE)
+  (async () => {
+    try {
+      const flashcards = savedCards.map((c) => ({
+        question: c.question,
+        answer: c.answer,
+      }));
+      const quizzes = await openaiService.generateQuizzesFromCards(flashcards);
+      if (Array.isArray(quizzes) && quizzes.length > 0) {
+        const quizDocs = quizzes.map((q) => ({
+          user_id: userId,
+          quiz_set_id: savedQuizSet._id,
+          question: q.question,
+          options: Object.values(q.options),
+          correct_answer: q.options[q.correctAnswer],
+          explanation: q.explanation || "",
+        }));
+        await Quiz.insertMany(quizDocs);
+      }
+    } catch (e) {
+      console.error("[Async Quiz Generation Error]", e);
+    }
+  })();
+
+  return {
+    deck: savedDeck,
+    savedCards,
+    quizSet: savedQuizSet,
+    quizzes: [],
+  };
 };
 
 export const updateDeckWithCardsService = async (

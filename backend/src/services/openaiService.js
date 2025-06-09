@@ -68,6 +68,7 @@ Each quiz should include:
 - four "options" (A, B, C, D)
 - the correct option letter as "correctAnswer"
 - an "explanation" that briefly explains why the correct answer is right
+- Use the same language as text (e.g., if text are in Vietnamese, generate questions in Vietnamese).
 Please return ONLY a valid JSON array of quiz objects, no explanation, no markdown, no extra text.
 ---
 
@@ -141,7 +142,6 @@ Generate a ${textLength} word text for a ${gradeLevel} grade level student in ${
       ],
     });
 
-    // Trả về plain text, không parse JSON
     const generatedText = response.choices[0].message.content;
     return generatedText;
   } catch (error) {
@@ -150,8 +150,79 @@ Generate a ${textLength} word text for a ${gradeLevel} grade level student in ${
   }
 };
 
+const generateQuizzesFromCards = async (flashcards) => {
+  if (!flashcards || !Array.isArray(flashcards) || flashcards.length === 0)
+    return [];
+  const text = flashcards
+    .map((c, i) => `${i + 1}. Q: ${c.question}\nA: ${c.answer}`)
+    .join("\n");
+  const prompt = `Below is a set of flashcards, each consisting of a question and an answer .
+Your task is to generate multiple-choice quiz questions based on these flashcards. Requirements:
+- Generate 1 to 2 questions per flashcard.
+Each quiz should include:
+- a "question"
+- four "options" (A, B, C, D)
+- the correct option letter as "correctAnswer"
+- an "explanation" that briefly explains why the correct answer is right
+- Use the same language as the flashcards (e.g., if flashcards are in Vietnamese, generate questions in Vietnamese).
+Please return ONLY a valid JSON array of quiz objects, no explanation, no markdown, no extra text.
+
+Flashcards:
+${text}
+
+---
+Make sure **every question includes all 4 fields**.
+Output format (in JSON):
+[
+  {
+    "question": "Which of the following is true about ...?",
+    "options": {
+      "A": "Option A",
+      "B": "Option B",
+      "C": "Option C",
+      "D": "Option D"
+    },
+    "correctAnswer": "B"
+    "explanation": "Option B is correct because ..."
+  },
+  {
+    "question": "What is the function of ...?",
+    "options": {
+      "A": "Option A",
+      "B": "Option B",
+      "C": "Option C",
+      "D": "Option D"
+    },
+    "correctAnswer": "C"
+    "explanation": "Option B is correct because ..."
+  }
+]
+  Strictly output valid JSON. Do not omit any commas or quotes.
+  `;
+
+  try {
+    const response = await openai.chat.completions.create({
+      model: "gpt-4.1-nano",
+      messages: [
+        {
+          role: "system",
+          content: "Bạn là AI chuyên tạo câu hỏi trắc nghiệm từ flashcard.",
+        },
+        { role: "user", content: prompt },
+      ],
+    });
+    const content = response.choices[0].message.content;
+    const quizzes = JSON.parse(content);
+    return quizzes;
+  } catch (error) {
+    console.error("Error generating quizzes from cards:", error);
+    throw new Error("Failed to generate quizzes from cards. Please try again.");
+  }
+};
+
 export default {
   generateFlashcardsWithOpenAI,
   generateQuizzesWithOpenAI,
   generateText,
+  generateQuizzesFromCards,
 };
