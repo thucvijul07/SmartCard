@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { toast, ToastContainer } from "react-toastify";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -24,7 +25,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { BrainCircuit, FileText, Upload, Loader2 } from "lucide-react";
+import { BrainCircuit, FileText, Cpu, Loader2 } from "lucide-react";
 import axiosClient from "@/lib/axiosClient";
 
 export default function AIQuizPage() {
@@ -41,11 +42,49 @@ export default function AIQuizPage() {
   const [currentView, setCurrentView] = useState<"create" | "preview" | "take">(
     "create"
   );
-
+  const [isGeneratingText, setIsGeneratingText] = useState(false);
+  const [textLength, setTextLength] = useState([500]);
+  const [gradeLevel, setGradeLevel] = useState("middle");
+  const [topic, setTopic] = useState("");
+  const [language, setLanguage] = useState("english");
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
+  const handleGenerateAIText = async () => {
+    if (!topic) {
+      toast.error("Please enter a topic");
+      return;
+    }
+
+    setIsGeneratingText(true);
+
+    try {
+      const response = await axiosClient.post("/openai/generate-text", {
+        topic,
+        textLength: textLength[0],
+        gradeLevel,
+        language,
+      });
+
+      const generatedText = response.data.text;
+      setInputText(generatedText);
+
+      toast.success(
+        "Text generated successfully! Check the Text tab to review and edit before generating flashcards."
+      );
+      setInputMethod("text");
+    } catch (error) {
+      console.error(error);
+      toast.error("An error occurred while generating text. Please try again.");
+    } finally {
+      setIsGeneratingText(false);
+    }
+  };
+
   const handleGenerate = async () => {
-    if (!inputText.trim()) return;
+    if (!inputText.trim()) {
+      toast.error("Please enter some text to generate a quiz.");
+      return;
+    }
 
     setIsGenerating(true);
     try {
@@ -87,6 +126,8 @@ export default function AIQuizPage() {
       setIsGenerating(false);
     }
   };
+  const isGenerateDisabled = !inputText.trim(); // Disable generate button if no input
+  const isGenerateTextDisabled = !topic.trim();
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -120,7 +161,7 @@ export default function AIQuizPage() {
                           onValueChange={(v) => setInputMethod(v as any)}
                           className="w-full"
                         >
-                          <TabsList className="grid w-full grid-cols-3 mb-4">
+                          <TabsList className="grid w-full grid-cols-2 mb-4">
                             <TabsTrigger
                               value="text"
                               className="flex items-center gap-2"
@@ -129,32 +170,11 @@ export default function AIQuizPage() {
                               <span>Text</span>
                             </TabsTrigger>
                             <TabsTrigger
-                              value="upload"
+                              value="ai"
                               className="flex items-center gap-2"
                             >
-                              <Upload className="h-4 w-4" />
-                              <span>Upload</span>
-                            </TabsTrigger>
-                            <TabsTrigger
-                              value="url"
-                              className="flex items-center gap-2"
-                            >
-                              <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                width="16"
-                                height="16"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="2"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                className="h-4 w-4"
-                              >
-                                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
-                                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
-                              </svg>
-                              <span>URL</span>
+                              <Cpu className="h-4 w-4" />
+                              <span>Generate Text</span>
                             </TabsTrigger>
                           </TabsList>
 
@@ -167,6 +187,7 @@ export default function AIQuizPage() {
                                   placeholder="e.g., Biology Chapter 5 Quiz"
                                   value={title}
                                   onChange={(e) => setTitle(e.target.value)}
+                                  disabled={isGenerating}
                                 />
                               </div>
                               <div className="space-y-2">
@@ -180,37 +201,115 @@ export default function AIQuizPage() {
                                   onChange={(e) => setInputText(e.target.value)}
                                   rows={12}
                                   className="resize-none"
+                                  disabled={isGenerating}
                                 />
                               </div>
                             </div>
                           </TabsContent>
 
-                          <TabsContent value="upload">
-                            <div className="flex items-center justify-center h-64 border-2 border-dashed rounded-md border-muted-foreground/25 p-4">
-                              <div className="text-center">
-                                <Upload className="h-10 w-10 text-muted-foreground mx-auto mb-4" />
-                                <h3 className="text-lg font-medium mb-2">
-                                  Upload a file
-                                </h3>
-                                <p className="text-sm text-muted-foreground mb-4">
-                                  Drag and drop or click to upload PDF, DOCX, or
-                                  TXT files
-                                </p>
-                                <Button variant="outline">Select File</Button>
-                              </div>
-                            </div>
-                          </TabsContent>
-
-                          <TabsContent value="url">
-                            <div className="space-y-4">
+                          <TabsContent value="ai">
+                            <div className="space-y-6">
                               <div className="space-y-2">
-                                <Label htmlFor="url">Enter URL</Label>
+                                <Label htmlFor="topic">Topic</Label>
                                 <Input
-                                  id="url"
-                                  placeholder="https://example.com/article"
+                                  id="topic"
+                                  placeholder="e.g., Photosynthesis, World War II, Quantum Physics"
+                                  value={topic}
+                                  onChange={(e) => setTopic(e.target.value)}
                                 />
                               </div>
-                              <Button variant="outline">Fetch Content</Button>
+
+                              <div className="space-y-2">
+                                <Label htmlFor="text-length">
+                                  Text Length ({textLength[0]} words)
+                                </Label>
+                                <Slider
+                                  id="text-length"
+                                  min={100}
+                                  max={2000}
+                                  step={100}
+                                  value={textLength}
+                                  onValueChange={setTextLength}
+                                />
+                              </div>
+
+                              <div className="space-y-2">
+                                <Label htmlFor="grade-level">Grade Level</Label>
+                                <Select
+                                  value={gradeLevel}
+                                  onValueChange={setGradeLevel}
+                                >
+                                  <SelectTrigger id="grade-level">
+                                    <SelectValue placeholder="Select grade level" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="elementary">
+                                      Elementary School
+                                    </SelectItem>
+                                    <SelectItem value="middle">
+                                      Middle School
+                                    </SelectItem>
+                                    <SelectItem value="high">
+                                      High School
+                                    </SelectItem>
+                                    <SelectItem value="college">
+                                      College
+                                    </SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+
+                              <div className="space-y-2">
+                                <Label htmlFor="language">Language</Label>
+                                <Select
+                                  value={language}
+                                  onValueChange={setLanguage}
+                                >
+                                  <SelectTrigger id="language">
+                                    <SelectValue placeholder="Select language" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="english">
+                                      English
+                                    </SelectItem>
+                                    <SelectItem value="vietnamese">
+                                      Vietnamese
+                                    </SelectItem>
+                                    <SelectItem value="spanish">
+                                      Spanish
+                                    </SelectItem>
+                                    <SelectItem value="french">
+                                      French
+                                    </SelectItem>
+                                    <SelectItem value="chinese">
+                                      Chinese
+                                    </SelectItem>
+                                    <SelectItem value="japanese">
+                                      Japanese
+                                    </SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+
+                              <Button
+                                className="w-full"
+                                onClick={handleGenerateAIText}
+                                disabled={
+                                  isGenerateTextDisabled || isGeneratingText
+                                }
+                              >
+                                {isGeneratingText ? (
+                                  <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    Generating Text...
+                                  </>
+                                ) : (
+                                  <>
+                                    <Cpu className="mr-2 h-4 w-4" />
+                                    Generate Text
+                                  </>
+                                )}
+                              </Button>
                             </div>
                           </TabsContent>
                         </Tabs>
@@ -235,6 +334,7 @@ export default function AIQuizPage() {
                             step={1}
                             value={numQuestions}
                             onValueChange={setNumQuestions}
+                            disabled={isGenerating}
                           />
                         </div>
 
@@ -243,6 +343,7 @@ export default function AIQuizPage() {
                           <Select
                             value={difficulty}
                             onValueChange={setDifficulty}
+                            disabled={isGenerating}
                           >
                             <SelectTrigger id="difficulty">
                               <SelectValue placeholder="Select difficulty" />
@@ -257,7 +358,11 @@ export default function AIQuizPage() {
 
                         <div className="space-y-2">
                           <Label htmlFor="quiz-type">Quiz type</Label>
-                          <Select value={quizType} onValueChange={setQuizType}>
+                          <Select
+                            value={quizType}
+                            onValueChange={setQuizType}
+                            disabled={isGenerating}
+                          >
                             <SelectTrigger id="quiz-type">
                               <SelectValue placeholder="Select quiz type" />
                             </SelectTrigger>

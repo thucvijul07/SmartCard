@@ -1,29 +1,61 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { useRouter } from "next/navigation"
-import { Header } from "@/components/header"
-import { Sidebar } from "@/components/sidebar"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Plus } from "lucide-react"
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { Header } from "@/components/header";
+import { Sidebar } from "@/components/sidebar";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Plus } from "lucide-react";
+import axiosClient from "@/lib/axiosClient";
+import dynamic from "next/dynamic";
+const CalendarHeatmap = dynamic(() => import("react-calendar-heatmap"), {
+  ssr: false,
+});
+import "react-calendar-heatmap/dist/styles.css";
+import "@/styles/heatmap-custom.css";
 
 export default function DashboardPage() {
-  const router = useRouter()
-  const [sidebarOpen, setSidebarOpen] = useState(false)
+  const router = useRouter();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [stats, setStats] = useState({
+    totalDecks: 0,
+    totalCardsReviewed: 0,
+    totalQuizAttempts: 0,
+  });
+  const [loadingStats, setLoadingStats] = useState(true);
+  const [studyDays, setStudyDays] = useState<string[]>([]);
+  const [loadingHeatmap, setLoadingHeatmap] = useState(true);
 
-  const recentSets = [
-    { id: "1", title: "Biology 101", cards: 50, lastStudied: "2 days ago" },
-    { id: "2", title: "Chemistry Basics", cards: 30, lastStudied: "1 week ago" },
-    { id: "3", title: "Spanish Vocabulary", cards: 100, lastStudied: "3 days ago" },
-  ]
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const res = await axiosClient.get("/statistics");
+        if (res.data?.is_success && res.data.data) {
+          setStats(res.data.data);
+        }
+      } catch (err) {
+      } finally {
+        setLoadingStats(false);
+      }
+    };
+    fetchStats();
+  }, []);
 
-  const popularSets = [
-    { id: "4", title: "World History", cards: 75, creator: "Jane Doe", studyCount: 1250 },
-    { id: "5", title: "Physics Formulas", cards: 40, creator: "John Smith", studyCount: 980 },
-    { id: "6", title: "English Literature", cards: 60, creator: "Alice Johnson", studyCount: 750 },
-  ]
+  useEffect(() => {
+    const fetchStudyDays = async () => {
+      try {
+        const res = await axiosClient.get("/statistics/study-days");
+        if (res.data?.is_success && Array.isArray(res.data.data)) {
+          setStudyDays(res.data.data);
+        }
+      } catch (err) {
+      } finally {
+        setLoadingHeatmap(false);
+      }
+    };
+    fetchStudyDays();
+  }, []);
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -43,96 +75,58 @@ export default function DashboardPage() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
               <Card>
                 <CardContent className="p-6">
-                  <div className="text-4xl font-bold text-primary mb-2">12</div>
-                  <div className="text-sm text-muted-foreground">Flashcard Sets</div>
+                  <div className="text-4xl font-bold text-primary mb-2">
+                    {loadingStats ? "..." : stats.totalDecks}
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    Flashcard Sets
+                  </div>
                 </CardContent>
               </Card>
               <Card>
                 <CardContent className="p-6">
-                  <div className="text-4xl font-bold text-primary mb-2">548</div>
-                  <div className="text-sm text-muted-foreground">Cards Studied</div>
+                  <div className="text-4xl font-bold text-primary mb-2">
+                    {loadingStats ? "..." : stats.totalCardsReviewed}
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    Cards Studied
+                  </div>
                 </CardContent>
               </Card>
               <Card>
                 <CardContent className="p-6">
-                  <div className="text-4xl font-bold text-primary mb-2">85%</div>
-                  <div className="text-sm text-muted-foreground">Retention Rate</div>
+                  <div className="text-4xl font-bold text-primary mb-2">
+                    {loadingStats ? "..." : stats.totalQuizAttempts}
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    Completed Quiz
+                  </div>
                 </CardContent>
               </Card>
             </div>
 
-            <Tabs defaultValue="recent" className="w-full mb-10">
-              <TabsList className="grid w-full max-w-md grid-cols-2 mb-6">
-                <TabsTrigger value="recent">Recent Sets</TabsTrigger>
-                <TabsTrigger value="popular">Popular Sets</TabsTrigger>
-              </TabsList>
-              <TabsContent value="recent">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {recentSets.map((set) => (
-                    <Card key={set.id} className="hover:shadow-md transition-shadow">
-                      <CardContent className="p-6">
-                        <h3 className="font-medium mb-2">{set.title}</h3>
-                        <div className="flex justify-between text-sm text-muted-foreground mb-4">
-                          <span>{set.cards} cards</span>
-                          <span>Last studied: {set.lastStudied}</span>
-                        </div>
-                        <Button variant="outline" size="sm" onClick={() => router.push(`/study/${set.id}`)}>
-                          Study Now
-                        </Button>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              </TabsContent>
-              <TabsContent value="popular">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {popularSets.map((set) => (
-                    <Card key={set.id} className="hover:shadow-md transition-shadow">
-                      <CardContent className="p-6">
-                        <h3 className="font-medium mb-2">{set.title}</h3>
-                        <div className="flex justify-between text-sm text-muted-foreground mb-4">
-                          <span>{set.cards} cards</span>
-                          <span>By: {set.creator}</span>
-                        </div>
-                        <div className="text-sm text-muted-foreground mb-4">
-                          {set.studyCount.toLocaleString()} studies
-                        </div>
-                        <Button variant="outline" size="sm" onClick={() => router.push(`/study/${set.id}`)}>
-                          Study Now
-                        </Button>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              </TabsContent>
-            </Tabs>
-
             <section>
               <h2 className="text-2xl font-semibold mb-4">Study Streak</h2>
-              <Card>
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-center gap-2">
-                    {Array.from({ length: 7 }).map((_, i) => (
-                      <div
-                        key={i}
-                        className={`h-16 w-10 rounded-md flex items-center justify-center ${
-                          i < 5 ? "bg-primary text-primary-foreground" : "bg-muted"
-                        }`}
-                      >
-                        {i < 5 && "✓"}
-                      </div>
-                    ))}
-                  </div>
-                  <div className="text-center mt-4 text-sm text-muted-foreground">
-                    You're on a 5-day streak! Keep it up!
-                  </div>
-                </CardContent>
-              </Card>
+              <div className="overflow-x-auto max-w-full ">
+                <div className="scale-[0.9] md:scale-[0.8]">
+                  <CalendarHeatmap
+                    startDate={new Date(new Date().getFullYear(), 0, 1)}
+                    endDate={new Date()}
+                    values={studyDays.map((date) => ({ date, count: 1 }))}
+                    classForValue={(value: any) => {
+                      if (!value || !value.date)
+                        return "react-calendar-heatmap-empty";
+                      return "react-calendar-heatmap-color-filled";
+                    }}
+                    showWeekdayLabels={true}
+                    rectSize={4}
+                  />
+                </div>
+              </div>
             </section>
           </div>
         </main>
       </div>
     </div>
-  )
+  );
 }
-

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { toast, ToastContainer } from "react-toastify";
 import { useRouter } from "next/navigation";
 import { useSearchParams } from "next/navigation";
 import { Header } from "@/components/header";
@@ -257,7 +258,7 @@ export default function ReviewAIQuizPage() {
               <div className="flex items-center">
                 <Button
                   variant="ghost"
-                  onClick={() => router.push("/ai-quiz-generator")}
+                  onClick={() => router.push("/ai-quiz")}
                   className="mr-4"
                 >
                   <ArrowLeft className="mr-2 h-4 w-4" />
@@ -661,6 +662,7 @@ export default function ReviewAIQuizPage() {
               </TabsContent>
             </Tabs>
           </div>
+          <ToastContainer position="top-right" autoClose={3000} />
         </main>
       </div>
     </div>

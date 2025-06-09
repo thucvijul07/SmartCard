@@ -162,6 +162,7 @@ export default function AIFlashcardPage() {
                               placeholder="e.g., Biology Chapter 5"
                               value={title}
                               onChange={(e) => setTitle(e.target.value)}
+                              disabled={isGenerating}
                             />
                           </div>
                           <div className="space-y-2">
@@ -173,6 +174,7 @@ export default function AIFlashcardPage() {
                               onChange={(e) => setInputText(e.target.value)}
                               rows={12}
                               className="resize-none"
+                              disabled={isGenerating}
                             />
                           </div>
                         </div>
@@ -295,12 +297,17 @@ export default function AIFlashcardPage() {
                         step={1}
                         value={numCards}
                         onValueChange={setNumCards}
+                        disabled={isGenerating}
                       />
                     </div>
 
                     <div className="space-y-2">
                       <Label htmlFor="difficulty">Difficulty level</Label>
-                      <Select value={difficulty} onValueChange={setDifficulty}>
+                      <Select
+                        value={difficulty}
+                        onValueChange={setDifficulty}
+                        disabled={isGenerating}
+                      >
                         <SelectTrigger id="difficulty">
                           <SelectValue placeholder="Select difficulty" />
                         </SelectTrigger>

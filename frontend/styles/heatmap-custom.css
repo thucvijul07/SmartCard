@@ -1,0 +1,18 @@
+.react-calendar-heatmap text {
+  font-size: 4px;
+}
+
+.react-calendar-heatmap .day {
+  shape-rendering: geometricPrecision;
+  width: 5px;
+  height: 5px;
+  rx: 1px;
+  ry: 1px;
+}
+
+.react-calendar-heatmap-empty {
+  fill: #eeeeee;
+}
+.react-calendar-heatmap-color-filled {
+  fill: #3e8e76;
+}

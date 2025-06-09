@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { toast, ToastContainer } from "react-toastify";
 import { Header } from "@/components/header";
 import { Sidebar } from "@/components/sidebar";
 import { Button } from "@/components/ui/button";
@@ -70,12 +71,11 @@ export default function CreatePage() {
           answer: card.definition,
         })),
       });
-
-      alert("Flashcard set saved to your library!");
+      toast.success("Flashcard set saved successfully!");
       router.push("/library");
     } catch (error) {
       console.error("Error saving flashcard set:", error);
-      alert("Failed to save flashcard set. Please try again.");
+      toast.error("Failed to save flashcard set. Please try again.");
     }
   };
 
@@ -270,6 +270,7 @@ export default function CreatePage() {
               </TabsContent>
             </Tabs>
           </div>
+          <ToastContainer position="top-right" autoClose={3000} />
         </main>
       </div>
     </div>
