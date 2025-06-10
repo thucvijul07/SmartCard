@@ -274,6 +274,29 @@ export default function LibraryPage() {
                               variant="outline"
                               size="sm"
                               className="flex-1"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setDialogContent({
+                                  title: "Confirm delete",
+                                  description: `Are you sure you want to delete the quiz set "${quiz.title}"?`,
+                                  onConfirm: async () => {
+                                    try {
+                                      await axiosClient.delete(
+                                        `/quiz/set/${quiz._id}`
+                                      );
+                                      setQuizSets((prev) =>
+                                        prev.filter((q) => q._id !== quiz._id)
+                                      );
+                                      toast.success("Deleted successfully");
+                                    } catch (err) {
+                                      toast.error("Delete failed");
+                                    } finally {
+                                      setOpenDialog(false);
+                                    }
+                                  },
+                                });
+                                setOpenDialog(true);
+                              }}
                             >
                               Delete
                             </Button>

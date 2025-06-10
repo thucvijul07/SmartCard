@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
+import { ToastContainer, toast } from "react-toastify";
 import { Header } from "@/components/header";
 import { Sidebar } from "@/components/sidebar";
 import { Button } from "@/components/ui/button";
@@ -10,9 +11,11 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { ArrowLeft, Plus, Trash2, Save, ArrowRight } from "lucide-react";
+import axios from "@/lib/axiosClient";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 type FlashCard = {
-  id: string;
+  _id: string;
   term: string;
   definition: string;
 };
@@ -26,43 +29,47 @@ export default function EditFlashcardPage() {
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [pendingDeleteIndex, setPendingDeleteIndex] = useState<number | null>(
+    null
+  );
 
   useEffect(() => {
-    const mockFlashcardSet = {
-      id: id,
-      title: "Biology 101",
-      description: "Basic biology concepts and definitions",
-      cards: [
-        {
-          id: "1",
-          term: "Photosynthesis",
-          definition:
-            "The process by which green plants and some other organisms use sunlight to synthesize foods with the help of chlorophyll.",
-        },
-        {
-          id: "2",
-          term: "Mitochondria",
-          definition:
-            "Organelles found in large numbers in most cells, in which the biochemical processes of respiration and energy production occur.",
-        },
-        {
-          id: "3",
-          term: "Cellular Respiration",
-          definition:
-            "The process by which cells break down glucose and other molecules to generate ATP, releasing carbon dioxide and water as byproducts.",
-        },
-      ],
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        const res = await axios.get(`/cards/by-deck/${id}`);
+        const backendData = res.data;
+        if (backendData.title) setTitle(backendData.title);
+        if (backendData.description) setDescription(backendData.description);
+        if (backendData.cards) {
+          setCards(
+            backendData.cards.map((c: any) => ({
+              _id: c._id,
+              term: c.question,
+              definition: c.answer,
+            }))
+          );
+        } else if (backendData.data) {
+          setCards(
+            backendData.data.map((c: any) => ({
+              _id: c._id,
+              term: c.question,
+              definition: c.answer,
+            }))
+          );
+        }
+      } catch (e) {
+        console.error(e);
+      }
+      setLoading(false);
     };
-
-    setTitle(mockFlashcardSet.title);
-    setDescription(mockFlashcardSet.description);
-    setCards(mockFlashcardSet.cards);
-    setLoading(false);
+    fetchData();
   }, [id]);
 
   const addCard = () => {
     const newCard = {
-      id: `${cards.length + 1}`,
+      _id: `new-${Date.now()}`,
       term: "",
       definition: "",
     };
@@ -70,9 +77,20 @@ export default function EditFlashcardPage() {
     setCurrentCardIndex(cards.length);
   };
 
-  const removeCard = (index: number) => {
+  const removeCard = async (index: number) => {
     if (cards.length <= 1) return;
+    const card = cards[index];
     const newCards = [...cards];
+    // Nếu là card đã có trên backend thì gọi API xóa mề
+    if (card._id && !card._id.startsWith("new-")) {
+      try {
+        await axios.delete(`/cards/${card._id}`);
+        toast.success("Card deleted successfully");
+      } catch (e) {
+        console.error(e);
+        toast.error("Failed to delete card");
+      }
+    }
     newCards.splice(index, 1);
     setCards(newCards);
     if (currentCardIndex >= newCards.length) {
@@ -90,9 +108,43 @@ export default function EditFlashcardPage() {
     setCards(newCards);
   };
 
-  const handleSave = () => {
-    alert("Flashcard set saved!");
-    router.push("/library");
+  const handleSave = async () => {
+    try {
+      await axios.put(`/decks/${id}`, {
+        name: title,
+        description,
+        cards: cards.map((card) => ({
+          ...(card._id && !card._id.startsWith("new-")
+            ? { _id: card._id }
+            : {}),
+          question: card.term,
+          answer: card.definition,
+        })),
+      });
+      toast.success("Flashcard set saved successfully");
+      router.push("/library");
+    } catch (e) {
+      console.error(e);
+      toast.error("Failed to save flashcard set");
+    }
+  };
+
+  const handleDeleteClick = (index: number) => {
+    setPendingDeleteIndex(index);
+    setConfirmOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (pendingDeleteIndex !== null) {
+      await removeCard(pendingDeleteIndex);
+      setPendingDeleteIndex(null);
+      setConfirmOpen(false);
+    }
+  };
+
+  const handleCancelDelete = () => {
+    setPendingDeleteIndex(null);
+    setConfirmOpen(false);
   };
 
   if (loading) {
@@ -230,7 +282,7 @@ export default function EditFlashcardPage() {
               <div className="flex items-center justify-between">
                 <Button
                   variant="outline"
-                  onClick={() => removeCard(currentCardIndex)}
+                  onClick={() => handleDeleteClick(currentCardIndex)}
                   disabled={cards.length <= 1}
                 >
                   <Trash2 className="mr-2 h-4 w-4" />
@@ -245,6 +297,14 @@ export default function EditFlashcardPage() {
           </div>
         </main>
       </div>
+      <ConfirmDialog
+        open={confirmOpen}
+        onClose={handleCancelDelete}
+        onConfirm={handleConfirmDelete}
+        title="Delete Card"
+        description="Are you sure you want to delete this card? This action cannot be undone."
+      />
+      <ToastContainer position="top-right" autoClose={3000} />
     </div>
   );
 }

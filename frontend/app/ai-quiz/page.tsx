@@ -399,6 +399,7 @@ export default function AIQuizPage() {
               </>
             )}
           </div>
+          <ToastContainer position="top-right" autoClose={3000} />
         </main>
       </div>
     </div>

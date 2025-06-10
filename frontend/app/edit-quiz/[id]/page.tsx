@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
+import { ToastContainer, toast } from "react-toastify";
 import { Header } from "@/components/header";
 import { Sidebar } from "@/components/sidebar";
 import { Button } from "@/components/ui/button";
@@ -17,6 +18,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ArrowLeft, Plus, Trash2, Save, ArrowRight } from "lucide-react";
+import axios from "@/lib/axiosClient";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 type QuizQuestion = {
   id: string;
@@ -35,66 +38,34 @@ export default function EditQuizPage() {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [pendingDeleteIndex, setPendingDeleteIndex] = useState<number | null>(
+    null
+  );
 
-  // Simulate fetching quiz data
   useEffect(() => {
-    // In a real app, fetch from API based on params.id
-    const mockQuiz = {
-      id: id,
-      title: "Biology Midterm",
-      description: "Review quiz for biology midterm exam",
-      questions: [
-        {
-          id: "1",
-          question: "What is the powerhouse of the cell?",
-          options: [
-            "Nucleus",
-            "Mitochondria",
-            "Endoplasmic Reticulum",
-            "Golgi Apparatus",
-          ],
-          correctAnswer: 1,
-          explanation:
-            "Mitochondria are often referred to as the powerhouse of the cell because they generate most of the cell's supply of ATP, used as a source of chemical energy.",
-        },
-        {
-          id: "2",
-          question: "Which of the following is NOT a function of the liver?",
-          options: [
-            "Detoxification",
-            "Protein synthesis",
-            "Bile production",
-            "Oxygen transport",
-          ],
-          correctAnswer: 3,
-          explanation:
-            "Oxygen transport is primarily a function of red blood cells, not the liver.",
-        },
-        {
-          id: "3",
-          question: "What is the process by which plants make their own food?",
-          options: [
-            "Respiration",
-            "Photosynthesis",
-            "Fermentation",
-            "Digestion",
-          ],
-          correctAnswer: 1,
-          explanation:
-            "Photosynthesis is the process by which green plants and some other organisms use sunlight to synthesize foods with the help of chlorophyll.",
-        },
-      ],
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        const res = await axios.get(`/quiz/edit-set/${id}`);
+        const data = res.data?.data;
+        if (data) {
+          setTitle(data.title || "");
+          setDescription(data.description || "");
+          setQuestions(data.questions || []);
+        }
+      } catch (e) {
+        toast.error("Failed to load quiz data. Please try again.");
+        console.error(e);
+      }
+      setLoading(false);
     };
-
-    setTitle(mockQuiz.title);
-    setDescription(mockQuiz.description);
-    setQuestions(mockQuiz.questions);
-    setLoading(false);
+    fetchData();
   }, [id]);
 
   const addQuestion = () => {
     const newQuestion = {
-      id: `${questions.length + 1}`,
+      id: `new-${Date.now()}`,
       question: "",
       options: ["", "", "", ""],
       correctAnswer: 0,
@@ -104,9 +75,19 @@ export default function EditQuizPage() {
     setCurrentQuestionIndex(questions.length);
   };
 
-  const removeQuestion = (index: number) => {
+  const removeQuestion = async (index: number) => {
     if (questions.length <= 1) return;
+    const question = questions[index];
     const newQuestions = [...questions];
+    if (question.id && !question.id.startsWith("new-")) {
+      try {
+        await axios.delete(`/quiz/${question.id}`);
+        toast.success("Question deleted successfully.");
+      } catch (e) {
+        console.error(e);
+        toast.error("Failed to delete question. Please try again.");
+      }
+    }
     newQuestions.splice(index, 1);
     setQuestions(newQuestions);
     if (currentQuestionIndex >= newQuestions.length) {
@@ -136,10 +117,43 @@ export default function EditQuizPage() {
     setQuestions(newQuestions);
   };
 
-  const handleSave = () => {
-    // Save logic would go here
-    alert("Quiz saved!");
-    router.push("/library");
+  const handleSave = async () => {
+    try {
+      await axios.put(`/quiz/set/${id}`, {
+        title,
+        description,
+        questions: questions.map((q) => ({
+          id: q.id,
+          question: q.question,
+          options: q.options,
+          correct_answer: q.options[q.correctAnswer],
+          explanation: q.explanation,
+        })),
+      });
+      toast.success("Quiz saved successfully!");
+      router.push("/library");
+    } catch (e) {
+      toast.error("Failed to save quiz. Please try again.");
+      console.error(e);
+    }
+  };
+
+  const handleDeleteClick = (index: number) => {
+    setPendingDeleteIndex(index);
+    setConfirmOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (pendingDeleteIndex !== null) {
+      await removeQuestion(pendingDeleteIndex);
+      setPendingDeleteIndex(null);
+      setConfirmOpen(false);
+    }
+  };
+
+  const handleCancelDelete = () => {
+    setPendingDeleteIndex(null);
+    setConfirmOpen(false);
   };
 
   if (loading) {
@@ -344,7 +358,7 @@ export default function EditQuizPage() {
               <div className="flex items-center justify-between">
                 <Button
                   variant="outline"
-                  onClick={() => removeQuestion(currentQuestionIndex)}
+                  onClick={() => handleDeleteClick(currentQuestionIndex)}
                   disabled={questions.length <= 1}
                 >
                   <Trash2 className="mr-2 h-4 w-4" />
@@ -359,6 +373,13 @@ export default function EditQuizPage() {
           </div>
         </main>
       </div>
+      <ConfirmDialog
+        open={confirmOpen}
+        onClose={handleCancelDelete}
+        onConfirm={handleConfirmDelete}
+        title="Delete Question"
+        description="Are you sure you want to delete this question? This action cannot be undone."
+      />
     </div>
   );
 }

@@ -3,6 +3,7 @@ import {
   DialogContent,
   DialogFooter,
   DialogHeader,
+  DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 
@@ -25,7 +26,7 @@ export function ConfirmDialog({
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent>
         <DialogHeader>
-          <h3 className="text-lg font-semibold">{title}</h3>
+          <DialogTitle>{title}</DialogTitle>
         </DialogHeader>
         <p className="text-sm text-muted-foreground">{description}</p>
         <DialogFooter className="mt-4">

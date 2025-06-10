@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { ToastContainer, toast } from "react-toastify";
 import { Header } from "@/components/header";
 import { Sidebar } from "@/components/sidebar";
 import { Button } from "@/components/ui/button";
@@ -65,10 +66,12 @@ export default function ProfilePage() {
         birthday,
       });
       setSaveSuccess(true);
+      toast.success("Profile updated successfully");
       setTimeout(() => setSaveSuccess(false), 3000);
       setInitialProfile({ username, email, birthday });
     } catch (err) {
-      // handle error (có thể show toast)
+      toast.error("Failed to update profile");
+      setSaveSuccess(false);
     } finally {
       setIsSaving(false);
       setShowSaveConfirm(false);
@@ -79,6 +82,7 @@ export default function ProfilePage() {
     setIsDeleting(true);
     try {
       await axiosClient.delete("/user/info");
+      toast.success("Account deleted successfully");
       logout();
       router.push("/register");
     } catch (err) {
@@ -92,16 +96,18 @@ export default function ProfilePage() {
   const handleChangePassword = async () => {
     setIsSaving(true);
     try {
-      await axiosClient.put("/user/change-password", {
-        currentPassword,
+      await axiosClient.post("/user/change-password", {
+        oldPassword: currentPassword,
         newPassword,
       });
+      toast.success("Password changed successfully");
       setCurrentPassword("");
       setNewPassword("");
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 3000);
     } catch (err) {
-      // handle error (có thể show toast)
+      toast.error("Failed to change password");
+      setSaveSuccess(false);
     } finally {
       setIsSaving(false);
       setShowSavePasswordConfirm(false);
@@ -321,7 +327,7 @@ export default function ProfilePage() {
           </div>
         </main>
       </div>
-
+      <ToastContainer position="top-right" autoClose={3000} />
       <ConfirmDialog
         open={showSaveConfirm}
         onClose={() => setShowSaveConfirm(false)}
