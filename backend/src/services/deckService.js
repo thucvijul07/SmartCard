@@ -133,6 +133,37 @@ export const updateDeckWithCardsService = async (
   if (!updatedDeck)
     throw new Error("Deck không tồn tại hoặc không thuộc người dùng");
 
+  // Lấy danh sách card hiện tại của deck
+  const currentCards = await Card.find({
+    deck_id: deckId,
+    user_id: userId,
+    deleted_at: null,
+  });
+  const currentCardIds = currentCards.map((c) => c._id.toString());
+  const incomingCardIds = cards
+    .filter((c) => c._id)
+    .map((c) => c._id.toString());
+
+  // Xóa mềm các card không còn trong danh sách gửi lên
+  const cardsToDelete = currentCardIds.filter(
+    (id) => !incomingCardIds.includes(id)
+  );
+  if (cardsToDelete.length > 0) {
+    await Card.updateMany(
+      {
+        _id: { $in: cardsToDelete },
+        user_id: userId,
+        deck_id: deckId,
+        deleted_at: null,
+      },
+      { deleted_at: new Date() }
+    );
+    await ReviewLog.updateMany(
+      { card_id: { $in: cardsToDelete }, user_id: userId, deleted_at: null },
+      { deleted_at: new Date() }
+    );
+  }
+
   const updatedCards = [];
   const newCards = [];
 
@@ -169,20 +200,20 @@ export const updateDeckWithCardsService = async (
   };
 };
 
-// Xóa deck và tất cả các cards liên quan
 export const deleteDeckService = async (userId, deckId) => {
-  // Xóa mềm deck
   const deck = await Deck.findOneAndUpdate(
     { _id: deckId, user_id: userId, deleted_at: null },
     { deleted_at: new Date() },
     { new: true }
   );
   if (!deck) return null;
-  // Xóa mềm tất cả các card thuộc deck này
   await Card.updateMany(
     { deck_id: deckId, user_id: userId, deleted_at: null },
     { deleted_at: new Date() }
   );
-  // Xóa mềm tất cả reviewlog thuộc deck này nếu cần (nếu có trường deleted_at)
+  await ReviewLog.updateMany(
+    { deck_id: deckId, user_id: userId, deleted_at: null },
+    { deleted_at: new Date() }
+  );
   return true;
 };

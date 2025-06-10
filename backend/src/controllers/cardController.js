@@ -125,10 +125,50 @@ const getReviewStats = async (req, res) => {
   }
 };
 
+const getCardsByDeckId = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const { deckId } = req.params;
+    if (!deckId) {
+      return res.status(400).json({ message: "Thiếu deckId" });
+    }
+    const result = await cardService.getCardsByDeckIdService(userId, deckId);
+    res.status(200).json({ is_success: true, ...result });
+  } catch (err) {
+    res.status(500).json({
+      is_success: false,
+      message: "Không thể lấy danh sách thẻ",
+      error: err.message,
+    });
+  }
+};
+
+const softDeleteCard = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const { id } = req.params;
+    if (!id) {
+      return res.status(400).json({ message: "Thiếu card id" });
+    }
+    await cardService.softDeleteCardService(userId, id);
+    res
+      .status(200)
+      .json({ is_success: true, message: "Đã xóa thẻ thành công" });
+  } catch (err) {
+    res.status(500).json({
+      is_success: false,
+      message: "Không thể xóa thẻ",
+      error: err.message,
+    });
+  }
+};
+
 export {
   updateCard,
   generateFlashcards,
   getCardsToReview,
   updateReviewResult,
   getReviewStats,
+  getCardsByDeckId,
+  softDeleteCard,
 };

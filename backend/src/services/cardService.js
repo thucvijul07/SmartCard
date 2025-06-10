@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import Card from "../models/Card.js";
 import ReviewLog from "../models/ReviewLog.js";
+import Deck from "../models/Deck.js";
 import {
   createEmptyCard,
   generatorParameters,
@@ -232,6 +233,45 @@ const getReviewStatsService = async (userId, deckId) => {
   };
 };
 
+// Lấy tất cả card của 1 deck (không xóa mềm) và trả về cả title, description
+const getCardsByDeckIdService = async (userId, deckId) => {
+  if (!mongoose.Types.ObjectId.isValid(deckId)) {
+    return { title: "", description: "", cards: [] };
+  }
+  const deck = await Deck.findOne({
+    _id: deckId,
+    user_id: userId,
+    deleted_at: null,
+  });
+  if (!deck) {
+    return { title: "", description: "", cards: [] };
+  }
+  const cards = await Card.find({
+    user_id: userId,
+    deck_id: deckId,
+    deleted_at: null,
+  }).sort({ created_at: 1 });
+  return {
+    title: deck.name,
+    description: deck.description,
+    cards,
+  };
+};
+
+// Xóa mềm card và reviewlog liên quan
+const softDeleteCardService = async (userId, cardId) => {
+  // Xóa mềm card
+  await Card.findOneAndUpdate(
+    { _id: cardId, user_id: userId, deleted_at: null },
+    { deleted_at: new Date() }
+  );
+  // Xóa mềm reviewlog liên quan
+  await ReviewLog.updateMany(
+    { card_id: cardId, user_id: userId, deleted_at: null },
+    { deleted_at: new Date() }
+  );
+};
+
 // Xóa mềm card
 const deleteCard = async (userId, cardId) => {
   await Card.findOneAndUpdate(
@@ -246,4 +286,6 @@ export {
   updateReviewResultService,
   getReviewStatsService,
   deleteCard,
+  getCardsByDeckIdService,
+  softDeleteCardService,
 };

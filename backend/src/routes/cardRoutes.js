@@ -5,6 +5,8 @@ import {
   getCardsToReview,
   updateReviewResult,
   getReviewStats,
+  getCardsByDeckId,
+  softDeleteCard,
 } from "../controllers/cardController.js";
 import { Auth } from "../middlewares/auth.js";
 
@@ -16,12 +18,17 @@ router.put("/:id", Auth.UserAuth, updateCard);
 router.post("/generate", Auth.UserAuth, generateFlashcards);
 
 // API lấy danh sách thẻ để ôn tập (user)
-router.get("/review", Auth.UserAuth, getCardsToReview); // Thêm deckId vào query
+router.get("/review", Auth.UserAuth, getCardsToReview);
 
 // API cập nhật kết quả ôn tập (user)
-router.post("/review", Auth.UserAuth, updateReviewResult); // Thêm deckId vào body
+router.post("/review", Auth.UserAuth, updateReviewResult);
 
 // API lấy thống kê ôn tập (user)
-router.get("/stats", Auth.UserAuth, getReviewStats); // Thêm deckId vào query
+router.get("/stats", Auth.UserAuth, getReviewStats);
+
+// API lấy tất cả card của 1 deck (user)
+router.get("/by-deck/:deckId", Auth.UserAuth, getCardsByDeckId);
+// API xóa mềm card (user)
+router.delete("/:id", Auth.UserAuth, softDeleteCard);
 
 export default router;

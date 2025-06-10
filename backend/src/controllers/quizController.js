@@ -66,28 +66,6 @@ const createQuiz = async (req, res) => {
   }
 };
 
-const updateQuiz = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const updateData = req.body;
-    const quiz = await quizService.updateQuiz(id, updateData);
-    res.status(200).json({ isSuccess: true, data: quiz });
-  } catch (error) {
-    res.status(400).json({ isSuccess: false, message: error.message });
-  }
-};
-
-const deleteQuiz = async (req, res) => {
-  try {
-    const { id } = req.params;
-    await quizService.deleteQuiz(id);
-    res.status(200).json({ isSuccess: true, message: "Quiz deleted" });
-  } catch (error) {
-    res.status(400).json({ isSuccess: false, message: error.message });
-  }
-};
-
-// Lấy nội dung quiz theo quizSetId (dùng cho giao diện take quiz)
 const getQuizSetDetail = async (req, res) => {
   try {
     const { id } = req.params; // quizSetId
@@ -119,10 +97,38 @@ const getQuizSetDetail = async (req, res) => {
   }
 };
 
+const getQuizSetForEdit = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user._id;
+    const data = await quizService.getQuizSetWithQuestionsForEdit(id, userId);
+    if (!data) {
+      return res
+        .status(404)
+        .json({ isSuccess: false, message: "Quiz set not found" });
+    }
+    res.status(200).json({ isSuccess: true, data });
+  } catch (error) {
+    res.status(500).json({ isSuccess: false, message: error.message });
+  }
+};
+
+// Xóa mềm quiz và quizattempt liên quan
+const softDeleteQuiz = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user._id;
+    await quizService.softDeleteQuiz(id, userId);
+    res.status(200).json({ isSuccess: true, message: "Quiz deleted" });
+  } catch (error) {
+    res.status(400).json({ isSuccess: false, message: error.message });
+  }
+};
+
 export {
   generateQuizzes,
   createQuiz,
-  updateQuiz,
-  deleteQuiz,
   getQuizSetDetail,
+  getQuizSetForEdit,
+  softDeleteQuiz,
 };

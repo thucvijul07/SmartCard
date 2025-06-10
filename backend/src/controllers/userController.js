@@ -1,4 +1,9 @@
-import { getUserInfo, updateUserInfo, deleteUserById } from "../services/userService.js";
+import {
+  getUserInfo,
+  deleteUserById,
+  updateUserInfo,
+  changeUserPassword,
+} from "../services/userService.js";
 
 export const getUser = async (req, res) => {
   try {
@@ -19,22 +24,6 @@ export const getUser = async (req, res) => {
   }
 };
 
-// API cập nhật thông tin user
-export const updateUser = async (req, res) => {
-  try {
-    const updatedUser = await updateUserInfo(req.user._id, req.body);
-    return res.status(200).json({
-      is_success: true,
-      data: updatedUser,
-    });
-  } catch (err) {
-    return res.status(500).json({
-      is_success: false,
-      message: err.message,
-    });
-  }
-};
-
 // API xóa user
 export const deleteUser = async (req, res) => {
   try {
@@ -45,6 +34,39 @@ export const deleteUser = async (req, res) => {
     });
   } catch (err) {
     return res.status(500).json({
+      is_success: false,
+      message: err.message,
+    });
+  }
+};
+
+// API cập nhật thông tin user
+export const updateUser = async (req, res) => {
+  try {
+    const user = await updateUserInfo(req.user._id, req.body);
+    return res.status(200).json({
+      is_success: true,
+      data: user,
+    });
+  } catch (err) {
+    return res.status(500).json({
+      is_success: false,
+      message: err.message,
+    });
+  }
+};
+
+// API đổi mật khẩu
+export const changePassword = async (req, res) => {
+  try {
+    const { oldPassword, newPassword } = req.body;
+    await changeUserPassword(req.user._id, oldPassword, newPassword);
+    return res.status(200).json({
+      is_success: true,
+      message: "Password changed successfully",
+    });
+  } catch (err) {
+    return res.status(400).json({
       is_success: false,
       message: err.message,
     });
