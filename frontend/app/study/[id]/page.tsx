@@ -16,7 +16,6 @@ import {
 } from "lucide-react";
 import { Rating, State } from "ts-fsrs";
 import axiosClient from "@/lib/axiosClient";
-import { endOfDay, isBefore, parseISO } from "date-fns";
 
 // Định nghĩa type cho các key rating
 export type RatingLabel = "Again" | "Hard" | "Good" | "Easy";
@@ -41,19 +40,6 @@ type FlashCard = {
   rating?: number;
   nextDueTimes?: Record<RatingLabel, string>;
 };
-
-// Merge cards theo ưu tiên: 5 learning → 5 review → 1 fresh
-function mergeCards(
-  learning: FlashCard[],
-  review: FlashCard[],
-  fresh: FlashCard[]
-) {
-  const merged: FlashCard[] = [];
-  merged.push(...learning.slice(0, 5));
-  merged.push(...review.slice(0, 5));
-  if (fresh.length > 0) merged.push(fresh[0]);
-  return merged;
-}
 
 export default function StudyPage() {
   const { id } = useParams();
@@ -111,16 +97,7 @@ export default function StudyPage() {
     }
   };
   useEffect(() => {
-    let interval: NodeJS.Timeout | null = null;
     fetchCardsToReview();
-    interval = setInterval(() => {
-      if (!loading && !studyComplete) {
-        fetchCardsToReview();
-      }
-    }, 3000);
-    return () => {
-      if (interval) clearInterval(interval);
-    };
   }, [id]);
 
   useEffect(() => {
@@ -135,28 +112,11 @@ export default function StudyPage() {
     setFlipped(!flipped);
   };
 
-  // Helper để ánh xạ số sang tên rating
-  const getRatingLabel = (quality: Rating): RatingLabel => {
-    switch (quality) {
-      case Rating.Again:
-        return "Again";
-      case Rating.Hard:
-        return "Hard";
-      case Rating.Good:
-        return "Good";
-      case Rating.Easy:
-        return "Easy";
-      default:
-        return "Good";
-    }
-  };
-
   const handleResponse = async (quality: Rating) => {
     if (!flipped || cardsToReview.length === 0) return;
     const card = cardsToReview[0];
     try {
-      // Gửi đánh giá lên API, lấy về thẻ đã cập nhật
-      const res = await axiosClient.post("/cards/review", {
+      await axiosClient.post("/cards/review", {
         cards: [
           {
             id: card.id,
@@ -165,41 +125,8 @@ export default function StudyPage() {
           },
         ],
       });
-      const updatedCard = res.data?.data?.[0];
-      // Đảm bảo updatedCard có id đúng
-      if (updatedCard) {
-        updatedCard.id = updatedCard._id?.toString() || updatedCard.id;
-      }
-      // Loại bỏ thẻ cũ khỏi queue
-      let newQueue = cardsToReview.slice(1).filter((c) => c.id !== card.id);
-      // Nếu due mới <= endOfDay hôm nay thì thêm lại vào queue
-      const todayEnd = endOfDay(new Date());
-      const cardDue = updatedCard?.due ? parseISO(updatedCard.due) : null;
-      if (
-        (cardDue && isBefore(cardDue, todayEnd)) ||
-        cardDue?.getTime() === todayEnd.getTime()
-      ) {
-        newQueue.push({ ...updatedCard });
-      }
-      // Chia lại queue
-      const learning = newQueue
-        .filter((c) => c.state === 1 || c.state === 3)
-        .sort((a, b) => new Date(a.due).getTime() - new Date(b.due).getTime());
-      const review = newQueue
-        .filter((c) => c.state === 2 && new Date(c.due) <= todayEnd)
-        .sort((a, b) => new Date(a.due).getTime() - new Date(b.due).getTime());
-      const fresh = newQueue
-        .filter((c) => c.state === 0)
-        .sort(
-          (a, b) =>
-            new Date(a.created_at || a.due).getTime() -
-            new Date(b.created_at || b.due).getTime()
-        );
-      // Merge lại queue
-      const merged = mergeCards(learning, review, fresh);
       setFlipped(false);
-      setCardsToReview(merged);
-      if (merged.length === 0) setStudyComplete(true);
+      await fetchCardsToReview();
     } catch (error) {
       console.error("Failed to sync updated card or update queue:", error);
     }
@@ -275,15 +202,6 @@ export default function StudyPage() {
                   <Button variant="outline" onClick={handleBackToLibrary}>
                     Back to Library
                   </Button>
-                  <Button
-                    onClick={() => {
-                      setCardsToReview(cards);
-                      setProgress(0);
-                      setStudyComplete(false);
-                    }}
-                  >
-                    Study Again
-                  </Button>
                 </div>
               </Card>
             </div>
@@ -321,15 +239,6 @@ export default function StudyPage() {
                 <div className="flex justify-center gap-4">
                   <Button variant="outline" onClick={handleBackToLibrary}>
                     Back to Library
-                  </Button>
-                  <Button
-                    onClick={() => {
-                      setCardsToReview(cards);
-                      setProgress(0);
-                      setStudyComplete(false);
-                    }}
-                  >
-                    Study Again
                   </Button>
                 </div>
               </Card>

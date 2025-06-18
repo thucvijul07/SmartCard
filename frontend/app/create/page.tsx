@@ -62,6 +62,17 @@ export default function CreatePage() {
   };
 
   const handleSave = async () => {
+    const emptyCardIndex = cards.findIndex(
+      (card) => !card.term.trim() || !card.definition.trim()
+    );
+    if (emptyCardIndex !== -1) {
+      toast.error(
+        `Card ${
+          emptyCardIndex + 1
+        } is missing term or definition. Please fill in all fields.`
+      );
+      return;
+    }
     try {
       const response = await axiosClient.post("/decks", {
         name: title,
