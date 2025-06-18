@@ -15,6 +15,7 @@ Your task is to generate ${numCards} flashcards based on the content provided be
 The difficulty level is ${difficulty}. These flashcards are intended to help learners 
 remember key facts, concepts, or ideas from the material.
 If the text is too long, please summarize it to fit the flashcards.
+Please return ONLY a valid JSON array of quiz objects, no explanation, no markdown, no extra text
 ---
 
 ${text}
@@ -86,7 +87,7 @@ Output format (in JSON):
       "C": "Option C",
       "D": "Option D"
     },
-    "correctAnswer": "B"
+    "correctAnswer": "B",
     "explanation": "Option B is correct because ..."
   },
   {
@@ -97,7 +98,7 @@ Output format (in JSON):
       "C": "Option C",
       "D": "Option D"
     },
-    "correctAnswer": "C"
+    "correctAnswer": "C",
     "explanation": "Option B is correct because ..."
   }
 ]
@@ -158,7 +159,7 @@ const generateQuizzesFromCards = async (flashcards) => {
     .join("\n");
   const prompt = `Below is a set of flashcards, each consisting of a question and an answer .
 Your task is to generate multiple-choice quiz questions based on these flashcards. Requirements:
-- Generate 1 to 2 questions per flashcard.
+*** Generate 1 to 2 questions per flashcard.
 Each quiz should include:
 - a "question"
 - four "options" (A, B, C, D)
@@ -182,7 +183,7 @@ Output format (in JSON):
       "C": "Option C",
       "D": "Option D"
     },
-    "correctAnswer": "B"
+    "correctAnswer": "B",
     "explanation": "Option B is correct because ..."
   },
   {
@@ -193,7 +194,7 @@ Output format (in JSON):
       "C": "Option C",
       "D": "Option D"
     },
-    "correctAnswer": "C"
+    "correctAnswer": "C",
     "explanation": "Option B is correct because ..."
   }
 ]

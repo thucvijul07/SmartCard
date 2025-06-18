@@ -163,6 +163,24 @@ const softDeleteCard = async (req, res) => {
   }
 };
 
+const resetAllCardsToNew = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const { deckId } = req.body;
+    if (!deckId) {
+      return res.status(400).json({ message: "Thiếu deckId" });
+    }
+    await cardService.resetAllCardsToNewService(userId, deckId);
+    res.status(200).json({ is_success: true, message: "Reset thành công" });
+  } catch (err) {
+    res.status(500).json({
+      is_success: false,
+      message: "Không thể reset thẻ về trạng thái New",
+      error: err.message,
+    });
+  }
+};
+
 export {
   updateCard,
   generateFlashcards,
@@ -171,4 +189,5 @@ export {
   getReviewStats,
   getCardsByDeckId,
   softDeleteCard,
+  resetAllCardsToNew,
 };

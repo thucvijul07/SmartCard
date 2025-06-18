@@ -7,6 +7,7 @@ import {
   getReviewStats,
   getCardsByDeckId,
   softDeleteCard,
+  resetAllCardsToNew,
 } from "../controllers/cardController.js";
 import { Auth } from "../middlewares/auth.js";
 
@@ -30,5 +31,7 @@ router.get("/stats", Auth.UserAuth, getReviewStats);
 router.get("/by-deck/:deckId", Auth.UserAuth, getCardsByDeckId);
 // API xóa mềm card (user)
 router.delete("/:id", Auth.UserAuth, softDeleteCard);
+// API reset toàn bộ thẻ về trạng thái New (user)
+router.post("/reset-all-to-new", Auth.UserAuth, resetAllCardsToNew);
 
 export default router;

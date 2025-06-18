@@ -51,7 +51,9 @@ const getQuizSetWithQuestionsForEdit = async (quizSetId, userId) => {
     })),
   };
 };
-
+const getQuizzesByQuizSetId = async (quizSetId) => {
+  return Quiz.find({ quiz_set_id: quizSetId, deleted_at: null });
+};
 // Xóa mềm quiz và quizattempt liên quan
 const softDeleteQuiz = async (quizId, userId) => {
   await Quiz.findOneAndUpdate(
@@ -68,4 +70,5 @@ export default {
   createQuiz,
   getQuizSetWithQuestionsForEdit,
   softDeleteQuiz,
+  getQuizzesByQuizSetId,
 };
